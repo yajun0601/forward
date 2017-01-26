@@ -5,10 +5,8 @@
 2、读取指定文件，输出文件内容
 3、创建一个文件并保存到指定目录
 '''
-import os
 import pandas as pd
 import numpy as np
-import os.path
 import math
 
 
@@ -168,8 +166,10 @@ def process():
 #                print(df[1].values[i])
                 df.values[i][40]=np.nan
                 break
-        if nan < 39:
-            print(nan)
+        if nan < 39: # for nan results
+            idList.append(df.index[i])
+            resultList.append([df.values[i][0],0])
+            print("%s:%s"%(df.index[i],df.values[i][0]))
             continue
         ID=df.index[i]
         df.values[i][0]
