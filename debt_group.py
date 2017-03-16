@@ -49,17 +49,50 @@ AA_16_merge=AA_16.merge(NAA_16,how='left',on='公司名称').fillna(0)
 AA_16_only=AA_16_merge[AA_16_merge['信用评级_y']==0]['公司名称'].drop_duplicates()
 AA_16_only.to_csv('AA_16_only.csv')
 
-# 15 AA AND 16 AA-
-AA15_AA_16=AA15.merge(AA_16,how='left',on='公司名称').fillna(0)
-AA15_AA_16_only=AA15_AA_16[AA15_AA_16['信用评级_y']=='AA-']['公司名称'].drop_duplicates()
+
+# "15 AA only" AND "16 AA- only"
+AA_16o_list =set(AA_16_only)
+AA15o_list = set(AA15_only)
+AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
+AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
 AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
 
 
 # 15 AA AND 16 AA
-AA15_AA16=AA15.merge(AA16,how='left',on='公司名称').fillna(0)
-AA15_AA16_only=AA15_AA16[AA15_AA16['信用评级_y']=='AA']['公司名称'].drop_duplicates()
-AA15_AA16_only.to_csv('AA15_AA16_only.csv')
+AA16o =set(AA16_only)
+AA15o = set(AA15_only)
+AA15o_AA16o=AA15o.intersection(AA16o)
+AA15o_AA16o = pd.Series(list(AA15o_AA16o))
+AA15o_AA16o.to_csv('AA15o_AA16o.csv')
 
 
 
+# "15 AA only" AND "16 AA- only"
+AA_16o_list =set(AA_16_only)
+AA15o_list = set(AA15_only)
+AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
+AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
+AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
 
+last15 = pd.DataFrame()
+grouped15 = record2015.groupby('公司名称')
+for kk in grouped15.groups.keys():
+    content = grouped15.get_group(kk)
+    last = content[content['发布日期']==max(content['发布日期'])]
+    print(last[last['信用评级']=='AA-'])
+    last15 = last15.append(last[last['信用评级']=='AA'])
+#last15.to_csv("last15.csv")    
+
+
+first16 = pd.DataFrame()
+grouped = record2016.groupby('公司名称')
+for kk in grouped.groups.keys():
+    content = grouped.get_group(kk)
+    first = content[content['发布日期']==min(content['发布日期'])]
+    print(first[first['信用评级']=='AA-'])
+    first16 = first16.append(first[first['信用评级']=='AA-'])
+#first16.to_csv('first16AA_.csv')    
+last15AA = set(last15['公司名称'])
+first16AA_=set(first16['公司名称'])
+AA15L_AA_oFirst=last15AA.intersection(first16AA_)    
+pd.Series(list(AA15L_AA_oFirst)).to_csv('AA15L_AA_oFirst.csv')
