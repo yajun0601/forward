@@ -5,8 +5,13 @@ library(stringr)
 w.start()
 
 tablename = "balance_sheet"
-con <- RMySQL::dbConnect(MySQL(),host='192.168.10.60', port=3306, user='cui', password='Cui1234',dbname='creditDB')
-dbSendQuery(con,'SET NAMES gbk')
+db.connection = function()
+{
+    conn <- RMySQL::dbConnect(MySQL(),host='192.168.10.48', port=3306, user='cui', password='Cui1234',dbname='creditDB')
+    dbSendQuery(conn,'SET NAMES gbk')
+    return (conn)
+}
+con = db.connection()
 is_exists<-str_detect(dbListTables(con),tablename)
 
 if(sum(is_exists)>=1)
@@ -38,22 +43,8 @@ for(dd in dates){
     if(i%%200 == 0){
       dbDisconnect(con)
       print(stock_list[[1]][i])
-      con <- RMySQL::dbConnect(MySQL(),host='192.168.10.60', port=3306, user='cui', password='Cui1234',dbname='creditDB')
-      dbSendQuery(con,'SET NAMES gbk')
+      con = db.connection()
     }
   }
 }
-if(FALSE){
-  print(reportdate)
-  #stock_list = strsplit(stocklist,",")
-  sublist = "000006.SZ,000007.SZ,000008.SZ"
-  w_wss_data<-w.wss(sublist,cash_flow_items,'industryType=2','unit=1',reportdate,'rptType=1')
-  if(w_wss_data$ErrorCode){
-    print(w_wss_data$ErrorCode)
-    break()
-  }
-  df=as.data.frame(w_wss_data$Data)
-  df$rptDate=dd
-  dbWriteTable(con,tablename,df,append=TRUE)
-}
-#dbDisconnect(con)
+dbDisconnect(con)

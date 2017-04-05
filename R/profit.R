@@ -5,8 +5,14 @@ library(stringr)
 w.start()
 tablename = "profit_sheet"
 #if(con )
-con <- RMySQL::dbConnect(MySQL(),host='192.168.10.76', port=3306, user='yajun', password='0601yajun',dbname='creditDB')
-dbSendQuery(con,'SET NAMES gbk')
+db.connection = function()
+{
+  conn <- RMySQL::dbConnect(MySQL(),host='192.168.10.48', port=3306, user='cui', password='Cui1234',dbname='creditDB')
+  dbSendQuery(conn,'SET NAMES gbk')
+  return (conn)
+}
+con = db.connection()
+
 is_exists<-str_detect(dbListTables(con),tablename)
 
 if(sum(is_exists)>=1)
@@ -36,11 +42,10 @@ for(dd in dates){
     rownames(df)=i
     dbWriteTable(con,tablename,df,append=TRUE)
     if(i%%100==0){
+
       dbDisconnect(con)
-      str = stock_list[[1]][i]
-      print(paste(str, dd))
-      con <- RMySQL::dbConnect(MySQL(),host='192.168.10.76', port=3306, user='yajun', password='0601yajun',dbname='creditDB')
-      dbSendQuery(con,'SET NAMES gbk')
+      print(stock_list[[1]][i])
+      con = db.connection()
     }
   }
 }
@@ -57,4 +62,4 @@ if(FALSE){
   df$rptDate=dd
   dbWriteTable(con,tablename,df,append=TRUE)
 }
-#dbDisconnect(con)
+dbDisconnect(con)

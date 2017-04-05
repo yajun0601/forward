@@ -4,12 +4,18 @@ library(RMySQL)
 library(stringr)
 w.start()
 tablename = "cashflow"
-con <- RMySQL::dbConnect(MySQL(),host='192.168.10.48', port=3306, user='cui', password='Cui1234',dbname='creditDB')
-dbSendQuery(con,'SET NAMES gbk')
+db.connection = function()
+{
+  conn <- RMySQL::dbConnect(MySQL(),host='192.168.10.48', port=3306, user='cui', password='Cui1234',dbname='creditDB')
+  dbSendQuery(conn,'SET NAMES gbk')
+  return (conn)
+}
+con = db.connection()
+
 is_exists<-str_detect(dbListTables(con),tablename)
 
 if(sum(is_exists)>=1)
-{C
+{
   dbRemoveTable(con,tablename)
 }
 
@@ -35,11 +41,10 @@ for(dd in dates){
     df$rptDate=dd
     rownames(df)=i
     dbWriteTable(con,tablename,df,append=TRUE)
-    if(i%%20 == 0){
+    if(i%%200 == 0){
       dbDisconnect(con)
       print(stock_list[[1]][i])
-      con <- RMySQL::dbConnect(MySQL(),host='192.168.10.60', port=3306, user='yajun', password='0601yajun',dbname='creditDB')
-      dbSendQuery(con,'SET NAMES gbk')
+      con = db.connection()
     }
   }
   #  for (stock in stock_list){
@@ -65,4 +70,4 @@ if(FALSE){
   df$rptDate=dd
   dbWriteTable(con,tablename,df,append=TRUE)
 }
-#dbDisconnect(con)
+dbDisconnect(con)
