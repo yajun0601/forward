@@ -15,8 +15,15 @@ from pymongo import *
 import urllib.request
 import sys
 
-DATA_FILE='data/bond_info.xlsx'
-
+DEV = 1
+if DEV == 1 :
+    DATA_FILE='data/bond_info.xlsx'
+    ApiKey='ApiKey'
+    BASE_URL='http://dev.i.yjapi.com/'
+else:
+    ApiKey = '4cfc602109f24541ac70e1a904115ad1'
+    BASE_URL='http://i.yjapi.com/'
+    
 def load(filename):
     with open(filename) as json_file:
         data = json.load(json_file)
@@ -70,7 +77,7 @@ def JudgementDetail(Id):
     '''    
     DEV_URL='http://dev.i.yjapi.com/Judicial/GetJudgementDetail?key=ApiKey=%s&id=%s'%(ApiKey,Id)
     BASE_URL='http://i.yjapi.com/Judicial/GetJudgementDetail?key=ApiKey=%s&id='%(ApiKey)
-    url = DEV_URL
+    url = BASE_URL+'Judicial/GetJudgementDetail?key=ApiKey=%s&id=%s'%(ApiKey,Id)
     print(url)
     resp=urllib.request.urlopen(url).read()
     ret = json.loads(resp)
@@ -91,7 +98,7 @@ def JudgementDetail(Id):
         return None
 
 from urllib import parse
-ApiKey='ApiKey'
+
 def JudgmentDoc(company):
     '''
     请求示例：http://i.yjapi.com/Judicial/SearchJudgmentDoc?key=ApiKey&searchKey=小米科技有限责任公司
@@ -137,7 +144,7 @@ def company_list(data_file):
     bond_info = pd.read_excel(data_file,sheetname=[1], header = 0)
     df = bond_info[1]
     cmp_list = df[df.keys()[3]].tolist()
-    return cmp_list
+    return list(set(cmp_list))  # identical 
 
 client = MongoClient()
 client = MongoClient("mongodb://localhost:27017/")
