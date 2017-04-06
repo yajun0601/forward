@@ -7,7 +7,7 @@ w.start()
 tablename = "balance_sheet"
 db.connection = function()
 {
-    conn <- RMySQL::dbConnect(MySQL(),host='192.168.10.48', port=3306, user='cui', password='Cui1234',dbname='creditDB')
+    conn <- RMySQL::dbConnect(MySQL(),host='127.0.0.1', port=3306, user='cui', password='Cui1234',dbname='creditdb')
     dbSendQuery(conn,'SET NAMES gbk')
     return (conn)
 }

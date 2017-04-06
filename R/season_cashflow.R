@@ -26,7 +26,7 @@ stocklist = '000001.SZ,000002.SZ,000004.SZ,000005.SZ,000006.SZ,000007.SZ,000008.
 stock_list = strsplit(stocklist,",")
 dates = c("20120331","20120630","20120930","20121231","20130331","20130630","20130930","20131231","20140331","20140630","20140930","20141231","20150331","20150630","20150930","20151231")
 
-#dates = c("20121231"
+
 
 #3126 = 527,6
 for(dd in dates){
@@ -42,9 +42,10 @@ for(dd in dates){
     df$rptDate=dd
     rownames(df)=i
     dbWriteTable(con,"cashflows",df,append=TRUE)
+    print(stock_list[[1]][i])
     if(i%%100 == 0){
       dbDisconnect(con)
-      print(stock_list[[1]][i])
+      print("re-connect stock_list[[1]][i]")
       con = db.connection()
     }
   }
