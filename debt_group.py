@@ -29,36 +29,34 @@ AA15=record2015[record2015['信用评级']=='AA']
 NAA15 = record2015[record2015['信用评级']!='AA']
 AA15_merge=AA15.merge(NAA15,how='left',on='公司名称').fillna(0)
 AA15_only=AA15_merge[AA15_merge['信用评级_y']==0]['公司名称'].drop_duplicates()
-AA15_only.to_csv('AA15_only.csv')
+AA15_only.to_csv('AA15_only.csv',encoding='gbk')
 
 
 AA1516 = df[df['信用评级']=='AA']
 NAA1516 = df[df['信用评级']!='AA']
 AA1516_merge=AA1516.merge(NAA1516,how='left',on='公司名称').fillna(0)
 AA_only1516=AA1516_merge[AA1516_merge['信用评级_y']==0]['公司名称'].drop_duplicates()
-AA_only1516.to_csv('AA_only1516.csv')
+AA_only1516.to_csv('AA_only1516.csv',encoding='gbk')
 
 #16 only AA
 AA16=record2016[record2016['信用评级']=='AA']
 NAA16 = record2016[record2016['信用评级']!='AA']
 AA16_merge=AA16.merge(NAA16,how='left',on='公司名称').fillna(0)
 AA16_only=AA16_merge[AA16_merge['信用评级_y']==0]['公司名称'].drop_duplicates()
-AA16_only.to_csv('AA16_only.csv')
+AA16_only.to_csv('AA16_only.csv',encoding='gbk')
 
-# 16 only AA-
+# 16 only AA-  2016年 只包含 AA- 的评级
 AA_16=record2016[record2016['信用评级']=='AA-']
 NAA_16 = record2016[record2016['信用评级']!='AA-']
 AA_16_merge=AA_16.merge(NAA_16,how='left',on='公司名称').fillna(0)
 AA_16_only=AA_16_merge[AA_16_merge['信用评级_y']==0]['公司名称'].drop_duplicates()
-AA_16_only.to_csv('AA_16_only.csv')
+AA_16_only.to_csv('AA_16_only.csv',encoding='gbk')
 
+# 15 AA AND 16 AA-  研究组： 2015年 只有AA的评级，并且 2016 年出现过 AA- 的评级
+AA15_AA_16=AA15.merge(AA_16,how='left',on='公司名称').fillna(0)
+AA15_AA_16_only=AA15_AA_16[AA15_AA_16['信用评级_y']=='AA-']['公司名称'].drop_duplicates()
+AA15_AA_16_only.to_csv('AA15_AA_16_only.csv',encoding='gbk')
 
-# "15 AA only" AND "16 AA- only"
-AA_16o_list =set(AA_16_only)
-AA15o_list = set(AA15_only)
-AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
-AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
-AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
 
 report_FILE='data/沪深交易所公司债财务.xlsx'
 rp_df = pd.read_excel(report_FILE,sheetname=[0], header = 0,skip_footer=2)
@@ -86,7 +84,6 @@ AA15o_list = set(AA15_only)
 AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
 AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
 AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
-
 # 2015 last is AA
 last15 = pd.DataFrame()
 grouped15 = record2015.groupby('公司名称')
