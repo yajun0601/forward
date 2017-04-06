@@ -13,6 +13,9 @@ import math
 DATA_FILE='data/发债公司信用评级（2015年1月1日-2016月12月31日）.xlsx'
 df = pd.read_excel(DATA_FILE,sheetname=[0], parse_cols="A:B,D,E",header = 0,skip_footer=2)
 df = df[0]
+
+
+
 AA_201516 = df[df['信用评级']=='AA']['公司名称']
 AA_minus_201516 = df[df['信用评级']=='AA-']['公司名称']
 AA_plus_201516 = df[df['信用评级']=='AA+']['公司名称']
@@ -57,15 +60,25 @@ AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
 AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
 AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
 
+report_FILE='data/沪深交易所公司债财务.xlsx'
+rp_df = pd.read_excel(report_FILE,sheetname=[0], header = 0,skip_footer=2)
+rp_df = rp_df[0]
 
-# 15 AA AND 16 AA
+
+#  comparable group, only AA in 2015 AND only AA 16  
 AA16o =set(AA16_only)
 AA15o = set(AA15_only)
 AA15o_AA16o=AA15o.intersection(AA16o)
 AA15o_AA16o = pd.Series(list(AA15o_AA16o))
 AA15o_AA16o.to_csv('AA15o_AA16o.csv')
 
-
+# research group: all AA only in 2015, and at least 1 AA- in 2016
+AA_16=record2016[record2016['信用评级']=='AA-']
+AA1_16set = set(AA_16['公司名称'])
+AA15o_set = set(AA15_only)
+AA15o_AA1_16 = AA15o_set.intersection(AA1_16set)
+AA15o_AA1_16S = pd.Series(list(AA15o_AA1_16))
+AA15o_AA1_16S.to_csv('AA15o_AA1_16S.csv')
 
 # "15 AA only" AND "16 AA- only"
 AA_16o_list =set(AA_16_only)
@@ -74,25 +87,29 @@ AA15_AA_16_only = AA15o_list.intersection(AA_16o_list)
 AA15_AA_16_only = pd.Series(list(AA15_AA_16_only))
 AA15_AA_16_only.to_csv('AA15_AA_16_only.csv')
 
+# 2015 last is AA
 last15 = pd.DataFrame()
 grouped15 = record2015.groupby('公司名称')
 for kk in grouped15.groups.keys():
     content = grouped15.get_group(kk)
     last = content[content['发布日期']==max(content['发布日期'])]
-    print(last[last['信用评级']=='AA-'])
+    print(last[last['信用评级']=='AA-'].values)
     last15 = last15.append(last[last['信用评级']=='AA'])
 #last15.to_csv("last15.csv")    
 
-
+#2016 first is AA-
 first16 = pd.DataFrame()
 grouped = record2016.groupby('公司名称')
 for kk in grouped.groups.keys():
     content = grouped.get_group(kk)
     first = content[content['发布日期']==min(content['发布日期'])]
-    print(first[first['信用评级']=='AA-'])
+    print(first[first['信用评级']=='AA-'].values)
     first16 = first16.append(first[first['信用评级']=='AA-'])
 #first16.to_csv('first16AA_.csv')    
 last15AA = set(last15['公司名称'])
 first16AA_=set(first16['公司名称'])
 AA15L_AA_oFirst=last15AA.intersection(first16AA_)    
+#2015 last AA, and 2016 first AA-
 pd.Series(list(AA15L_AA_oFirst)).to_csv('AA15L_AA_oFirst.csv')
+
+
