@@ -202,10 +202,12 @@ def bondTest(tSet):
     index = 0
     for line in testSet.values:
         index += 1
+
         df = int(testLabels.values[index - 1])
         df_class = int(classifyVector(line.astype('float64'), trainWeights))
         if df_class!= df:
             if df_class == 1: # should be normal, classified as default 
+
                 Normal_errorCount += 1
             else: # shoud be default, classified as normal 
                 Default_errorCount += 1
@@ -228,8 +230,10 @@ if __name__ == "__main__":
     data.drop('INDUSTRY_GICSCODE',axis = 1)
 #    data['INDUSTRY_GICSCODE'] = INDUSTRY_GICSCODE
 #    bondTest(data)
+
     tSet=data.dropna(axis=0,how='any',thresh=150) # drop if na is above 50
     tSet=tSet.dropna(axis=1,how='any', thresh=2000) # drop column if na is above 10000
+
     tSet.fillna(0.0,inplace=True)
     numTests = 20; 
     default_erSum=0.0;
