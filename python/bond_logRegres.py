@@ -120,40 +120,94 @@ def multiTest():
         errorSum += colicTest()
     print("after %d iterations the average error rate is: %f" % (numTests, errorSum/float(numTests)))
 
-def bondTest(data):
-#    keep 4 dot points
+def bondTest0(data):
     default = round(tSet[tSet['df'] == 1],4) 
     normal = round(tSet[tSet['df'] == 0],4)
     
-    normal_len = int(len(normal)*0.7)
-    default_len = int(len(default) * 0.7)
+    normal_len = int(len(normal)*0.6)
+    default_len = int(len(default) * 0.6)
     training = normal[:normal_len].append(default[:default_len])
     
     trainingLabels = list(training['df'])
     trainingSet = training.drop(labels=['df'], axis=1)
     
-    testSet = normal[normal_len:].append(default[default_len:])
+#    testSet = normal[normal_len:].append(default[default_len:])
+    testSet = normal[normal_len:].append(default)
     
 #    trainingSet = trainingSet*100
     dataMat = trainingSet.values.astype('float64')
-    trainWeights = stocGradAscent1(dataMat, trainingLabels, 10)
+    trainWeights = stocGradAscent1(dataMat, trainingLabels, 150)
+    
+    errorCount = 0; numTestVec = 0.0
+#    Normal_errorCount = 0;Default_errorCount = 0
+    
+    default_num = len(testSet[testSet['df'] == 1.0])
+    normal_num = len(testSet[testSet['df'] == 0.0])
+    
+    testLabels = testSet['df']
+    
+    testSet = testSet.drop(labels=['df'], axis=1)
+#    testSet = testSet * 100
+    index = 0
+    for line in testSet.values:
+        index += 1
+        df = int(testLabels.values[index - 1])
+        df_class = int(classifyVector(line.astype('float64'), trainWeights))
+        if df_class != df:
+            errorCount += 1
+    numTestVec = len(testSet)
+#    for line in frTest.readlines():
+#        numTestVec += 1.0
+#        currLine = line.strip().split('\t')
+#        lineArr =[]
+#        for i in range(21):
+#            lineArr.append(float(currLine[i]))
+#        if int(classifyVector(array(lineArr), trainWeights))!= int(currLine[21]):
+#            errorCount += 1
+    errorRate = (float(errorCount)/numTestVec)
+    print("the error rate of this test is: %f" % errorRate)
+#    print(trainWeights)
+    return errorRate
+
+
+def bondTest(tSet):
+#    keep 4 dot points
+    default = round(tSet[tSet['df'] == 1],4)
+    normal = round(tSet[tSet['df'] == 0],4)
+    
+    normal_len = int(len(normal)*0.8)
+    default_len = int(len(default) * 0.8)
+    training = normal[:normal_len].append(default[:default_len])
+    
+    trainingLabels = list(training['df'])
+    trainingSet = training.drop(labels=['df'], axis=1)
+    
+#    testSet = normal[normal_len:].append(default[default_len:])
+    testSet = normal[normal_len:].append(default)
+    
+#    trainingSet = trainingSet*100
+    dataMat = trainingSet.values.astype('float64')
+    trainWeights = stocGradAscent1(dataMat, trainingLabels, 150)
     
 #    errorCount = 0; numTestVec = 0.0
     Normal_errorCount = 0;Default_errorCount = 0
     
     default_num = len(testSet[testSet['df'] == 1.0])
     normal_num = len(testSet[testSet['df'] == 0.0])
+    
     testLabels = testSet['df']
+    
     testSet = testSet.drop(labels=['df'], axis=1)
 #    testSet = testSet * 100
     index = 0
     for line in testSet.values:
         index += 1
-        df = trainingLabels[index]
-        if int(classifyVector(line.astype('float64'), trainWeights))!= int(df):
-            if int(df) == 0:
+        df = int(testLabels.values[index - 1])
+        df_class = int(classifyVector(line.astype('float64'), trainWeights))
+        if df_class!= df:
+            if df_class == 1: # should be normal, classified as default 
                 Normal_errorCount += 1
-            else:
+            else: # shoud be default, classified as normal 
                 Default_errorCount += 1
 
     default_errorRate = (float(Default_errorCount)/default_num)
@@ -174,16 +228,20 @@ if __name__ == "__main__":
     data.drop('INDUSTRY_GICSCODE',axis = 1)
 #    data['INDUSTRY_GICSCODE'] = INDUSTRY_GICSCODE
 #    bondTest(data)
-    tSet=data.dropna(axis=0,how='any',thresh=200) # drop if na is above 50
-    tSet=tSet.dropna(axis=1,how='any', thresh=1000) # drop column if na is above 10000
+    tSet=data.dropna(axis=0,how='any',thresh=150) # drop if na is above 50
+    tSet=tSet.dropna(axis=1,how='any', thresh=2000) # drop column if na is above 10000
     tSet.fillna(0.0,inplace=True)
     numTests = 20; 
     default_erSum=0.0;
     normal_erSum=0.0;
+#    for k in range(numTests):
+#        default_er = bondTest0(tSet)
+#        default_erSum += default_er
+#        
     for k in range(numTests):
         default_er,normal_er = bondTest(tSet)
         default_erSum += default_er
         normal_erSum += normal_er
-        
+
     print("after %d iterations default_erSum is: %f, normal_erSum is: %f" % (numTests, default_erSum/float(numTests), normal_erSum/float(numTests)))
-#    print("finished")
+    print("finished")
