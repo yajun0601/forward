@@ -6,7 +6,7 @@ This is a temporary script file.
 """
 
 import pandas as pd
-#import numpy  as np
+import numpy  as np
 from pymongo import *
 from numpy import *
 
@@ -40,6 +40,9 @@ def default_sample():
     qv = db.default_2016.find({},{'_id':0,'rptDate':0})
     ratios = pd.DataFrame(list(qv))
     
+    qv = db.issuers_info.find({'df':1},{'_id':0,'code':1})
+    real_df = pd.DataFrame(list(qv))
+    
     result = record.merge(ratios,on='code')
     result = result.dropna(axis=0, how='any',thresh=2)
     num = int(0.05*len(result)) # get the last 5% record
@@ -69,9 +72,7 @@ result = result.fillna(0)
 result.pop('code')
 #from sklearn.preprocessing import OneHotEncoder 
 #OneHotEncoder().fit_transform(result['PROVINCE'])
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-X = scaler.fit_transform(result.values)
+
 
 
 from sklearn.feature_selection import VarianceThreshold
@@ -79,22 +80,23 @@ from sklearn.feature_selection import VarianceThreshold
 #参数threshold为方差的阈值
 VarianceThreshold(threshold=3).fit_transform(iris.data)
 Variance = VarianceThreshold(threshold=1).fit_transform(X)
-dd = pd.DataFrame(Variance)
-dd['flag'] = df_flag
 
-from random import shuffle
-data = dd.as_matrix()
-shuffle(data)
-p = 0.8 # train/test ratio
-m,n = np.shape(data)
-train = data[:int(m*p),:]
-test = data[int(m*p):,:]
 #StandardScaler.fit_transform(iris.data)
 #query = db.default.distinct('发行人')
 #dfcomp = pd.DataFrame(list(query))
 #set(dfcomp[0])
 
 def LogisticRegression(result):
+    dd = pd.DataFrame(Variance)
+    dd['flag'] = df_flag
+    
+    from random import shuffle
+    data = dd.as_matrix()
+    shuffle(data)
+    p = 0.8 # train/test ratio
+    m,n = np.shape(data)
+    train = data[:int(m*p),:]
+    test = data[int(m*p):,:]
     data = result
     df_flag = result.pop('df')
     from sklearn.linear_model import LogisticRegression as LR
@@ -107,12 +109,12 @@ def LogisticRegression(result):
     rlr.get_support() #获取特征筛选结果，也可以通过
     print(u'通过随机逻辑回归模型筛选结束')
     print(u'有效特征为：%s' % ','.join(data.columns[rlr.get_support()]))
-    x = data[data.columns[rlr.get_support()]].as_matrix() #É¸Ñ¡ºÃÌØÕ÷
+    x = data[data.columns[rlr.get_support()]].as_matrix() # 
     
     lr = LR() # 建立逻辑回归模型
     lr.fit(x, y) # 用筛选后的特征数据来训练模型
     print(u'训练结束')
-    print(u'平均正确率为：%s' % lr.score(x, y)) 
+    print(u'平均正确率为：%s' % lr.score(x, y))
 
 #构建LM神经网络模型
 def LM_NN():
@@ -178,7 +180,7 @@ def classifyVector(inX, weights):
     else: return 0.0
 
 def prob(inX, weights):
-    prob = sigmoid(sum(inX*weights))
+    prob = (sum(inX*weights))
     return prob
 
 def bondTest(tSet):
@@ -250,27 +252,30 @@ if __name__ == "__main__":
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler
     
-    
     tSet = result
     probs = result.drop(labels=['df'], axis=1)
-    scaler.fit_transform(probs)
+    X = StandardScaler().fit_transform(probs.values)
+#    scaler.fit_transform(probs)
     #    keep 4 dot points
-    default = round(tSet[tSet['df'] == 1],4) 
+    default = round(tSet[tSet['df'] == 1],4)
     normal = round(tSet[tSet['df'] == 0],4)
     
-    normal_len = int(len(normal)*0.7)
-    default_len = int(len(default) * 0.7)
+
+    default_len = int(len(default) * 0.9)
+    normal_len = default_len*3 #int(len(normal)*0.7)
     training = normal[:normal_len].append(default[:default_len])
     
     trainingLabels = list(training['df'])
     trainingSet = training.drop(labels=['df'], axis=1)
     
-    testSet = normal[normal_len:].append(default[default_len:])
-    
+#    testSet = normal[normal_len:].append(default[default_len:])
+    testSet = normal[default_len*2:].append(default[default_len:])
+
 #    trainingSet = trainingSet*100
-    dataMat = trainingSet.values.astype('float64')
-#    trainWeights = stocGradAscent1(dataMat, trainingLabels, 1000)
-    trainWeights = stocGradAscent0(dataMat, trainingLabels)
+#    dataMat = trainingSet.values.astype('float64')
+    dataMat = StandardScaler().fit_transform(trainingSet.values)
+    trainWeights = stocGradAscent1(dataMat, trainingLabels, 5000)
+#    trainWeights = stocGradAscent0(dataMat, trainingLabels)
 #    errorCount = 0; numTestVec = 0.0
     Normal_errorCount = 0;
     Default_errorCount = 0
@@ -279,9 +284,10 @@ if __name__ == "__main__":
     normal_num = len(testSet[testSet['df'] == 0.0])
     testLabels = testSet['df']
     testSet = testSet.drop(labels=['df'], axis=1)
+    testMat = StandardScaler().fit_transform(testSet.values)
 #    testSet = testSet * 100
     index = 0
-    for line in testSet.values:
+    for line in testMat:
         index += 1
         df = testLabels.values[index - 1]
         if int(classifyVector(line.astype('float64'), trainWeights))!= int(df):
@@ -296,12 +302,15 @@ if __name__ == "__main__":
     print("default_errorRate: %d : %f, normal_errorRate:%d : %f" %(Default_errorCount,default_errorRate,Normal_errorCount,normal_errorRate))
 #    return Default_errorCount,Normal_errorCount
 
-    weights = gradAscent(dataMat, trainingLabels)
+    weights = stocGradAscent1(dataMat, trainingLabels)
     problist = list()
     for line in probs.values:
         problist.append(prob(line.astype('float64'), weights))
 
-    for a in problist:
-        if a!=0.0: print(a)
+#    ii = 0
+#    for a in problist:
+#        if a!=0.0:
+#            ii = ii +1
+#            print(ii,a)
 
 
