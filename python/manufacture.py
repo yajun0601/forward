@@ -6,8 +6,9 @@ This is a temporary script file.
 """
 
 import pandas as pd
-import numpy  as np
+#import numpy  as np
 from pymongo import *
+from numpy import *
 
 from sklearn.datasets import load_iris
  
@@ -30,7 +31,7 @@ iris.target
 #
 #m = mat(datart.Data)
 #df = pd.DataFrame(m.T, index = datart.Codes, columns = datart.Fields)
-client = MongoClient("mongodb://192.168.10.60:27017/")
+client = MongoClient("mongodb://127.0.0.1:27017/")
 db = client.bonds
 def default_sample():
     code = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20151231"}]},{'_id':0,'code':1,'COMP_NAME':1})
@@ -40,7 +41,7 @@ def default_sample():
     ratios = pd.DataFrame(list(qv))
     
     result = record.merge(ratios,on='code')
-    result = result.dropna(axis=0, how='any')
+    result = result.dropna(axis=0, how='any',thresh=2)
     num = int(0.05*len(result)) # get the last 5% record
     #现金流利息保障倍数
     result = result.sort_values('OCFTOINTEREST',axis=0, ascending=1)
@@ -59,16 +60,13 @@ def default_sample():
     samples = samples.T
     return samples
 
+samples = default_sample()
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20151231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
 record = pd.DataFrame(list(query)) #Convert the input to an array.
 result = record.dropna(axis=0, how='any')
 result = result.merge(samples,on='code', how = 'left')
 result = result.fillna(0)
 result.pop('code')
-
-
-
-df_flag = result.pop('df')
 #from sklearn.preprocessing import OneHotEncoder 
 #OneHotEncoder().fit_transform(result['PROVINCE'])
 from sklearn.preprocessing import StandardScaler
@@ -88,7 +86,7 @@ from random import shuffle
 data = dd.as_matrix()
 shuffle(data)
 p = 0.8 # train/test ratio
-m,n = shape(data)
+m,n = np.shape(data)
 train = data[:int(m*p),:]
 test = data[int(m*p):,:]
 #StandardScaler.fit_transform(iris.data)
@@ -96,38 +94,214 @@ test = data[int(m*p):,:]
 #dfcomp = pd.DataFrame(list(query))
 #set(dfcomp[0])
 
-#result['code'] == pd.Series(list(defaults))
+def LogisticRegression(result):
+    data = result
+    df_flag = result.pop('df')
+    from sklearn.linear_model import LogisticRegression as LR
+    from sklearn.linear_model import RandomizedLogisticRegression as RLR 
+    
+    x = result.values
+    y = df_flag.values
+    rlr = RLR() #建立逻辑回归模型，筛选变量
+    rlr.fit(x, y) #训练模型
+    rlr.get_support() #获取特征筛选结果，也可以通过
+    print(u'通过随机逻辑回归模型筛选结束')
+    print(u'有效特征为：%s' % ','.join(data.columns[rlr.get_support()]))
+    x = data[data.columns[rlr.get_support()]].as_matrix() #É¸Ñ¡ºÃÌØÕ÷
+    
+    lr = LR() # 建立逻辑回归模型
+    lr.fit(x, y) # 用筛选后的特征数据来训练模型
+    print(u'训练结束')
+    print(u'平均正确率为：%s' % lr.score(x, y)) 
+
 #构建LM神经网络模型
-from keras.models import Sequential #导入神经网络初始化函数
-from keras.layers.core import Dense, Activation #导入神经网络层函数、激活函数
-netfile = '../tmp/net.model' #构建的神经网络模型存储路径
-
-net = Sequential() #建立神经网络
-net.add(Dense(input_dim = n-1, output_dim = 20)) #添加输入层（3节点）到隐藏层（10节点）的连接
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 20, output_dim = 10)) #添加输入层（3节点）到隐藏层（10节点）的连接
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 10, output_dim = 1)) #添加隐藏层（10节点）到输出层（1节点）的连接
-net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数
-net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
-m,n = shape(train)
-net.fit(train[:,:n-1], train[:,n-1], nb_epoch=1000, batch_size=1) #训练模型，循环1000次
-net.save_weights(netfile) #保存模型
-
-predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
-'''这里要提醒的是，keras用predict给出预测概率，predict_classes才是给出预测类别，而且两者的预测结果都是n x 1维数组，而不是通常的 1 x n'''
-
+def LM_NN():
+    from keras.models import Sequential #导入神经网络初始化函数
+    from keras.layers.core import Dense, Activation #导入神经网络层函数、激活函数
+    netfile = '../tmp/net.model' #构建的神经网络模型存储路径
+    
+    net = Sequential() #建立神经网络
+    net.add(Dense(input_dim = n-1, output_dim = 100)) #添加输入层（3节点）到隐藏层（10节点）的连接
+    net.add(Activation('relu')) #隐藏层使用relu激活函数
+    net.add(Dense(input_dim = 100, output_dim = 5)) #添加输入层（3节点）到隐藏层（10节点）的连接
+    net.add(Activation('relu')) #隐藏层使用relu激活函数
+    net.add(Dense(input_dim = 5, output_dim = 1)) #添加隐藏层（10节点）到输出层（1节点）的连接
+    net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数
+    net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
+    m,n = np.shape(train)
+    net.fit(train[:,:n-1], train[:,n-1], nb_epoch=1000, batch_size=1) #训练模型，循环1000次
+    net.save_weights(netfile) #保存模型
+    
+    predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
+    '''这里要提醒的是，keras用predict给出预测概率，predict_classes才是给出预测类别，而且两者的预测结果都是n x 1维数组，而不是通常的 1 x n'''
 from cm_plot import * #导入自行编写的混淆矩阵可视化函数
-cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
+def comp_plot():
 
-from sklearn.metrics import roc_curve #导入ROC曲线函数
-import matplotlib.pyplot as plt
-predict_result = net.predict(test[:,:n-1]).reshape(len(test))
-fpr, tpr, thresholds = roc_curve(test[:,n-1], predict_result, pos_label=1)
-plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
-plt.xlabel('False Positive Rate') #坐标轴标签
-plt.ylabel('True Positive Rate') #坐标轴标签
-plt.ylim(0,1.05) #边界范围
-plt.xlim(0,1.05) #边界范围
-plt.legend(loc=4) #图例
-plt.show() #显示作图结果
+    cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
+
+def plot_roc():
+    from sklearn.metrics import roc_curve #导入ROC曲线函数
+    import matplotlib.pyplot as plt
+    predict_result = net.predict(test[:,:n-1]).reshape(len(test))
+    fpr, tpr, thresholds = roc_curve(test[:,n-1], predict_result, pos_label=1)
+    plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
+    plt.xlabel('False Positive Rate') #坐标轴标签
+    plt.ylabel('True Positive Rate') #坐标轴标签
+    plt.ylim(0,1.05) #边界范围
+    plt.xlim(0,1.05) #边界范围
+    plt.legend(loc=4) #图例
+    plt.show() #显示作图结果
+
+def sigmoid(inX):
+    return float(1.0/(1+exp(-inX)))
+
+def stocGradAscent1(dataMatrix, classLabels, numIter=150):
+    m,n = shape(dataMatrix)
+    weights = ones(n)   #initialize to all ones
+    for j in range(numIter):
+        dataIndex = list(range(m))
+        for i in range(m):
+            alpha = 4/(1.0+j+i)+0.0001    #apha decreases with iteration, does not 
+            randIndex = int(random.uniform(0,len(dataIndex)))#go to 0 because of the constant
+#            print(randIndex, sum(dataMatrix[randIndex]*weights))
+
+            h = sigmoid(sum(dataMatrix[randIndex]*weights))
+            error = classLabels[randIndex] - h
+            weights = weights + alpha * error * dataMatrix[randIndex]
+            del(dataIndex[randIndex])
+    return weights
+
+def classifyVector(inX, weights):
+    prob = sigmoid(sum(inX*weights))
+    if prob > 0.5:
+        return 1.0
+    else: return 0.0
+
+def prob(inX, weights):
+    prob = sigmoid(sum(inX*weights))
+    return prob
+
+def bondTest(tSet):
+#    keep 4 dot points
+    default = round(tSet[tSet['df'] == 1],4) 
+    normal = round(tSet[tSet['df'] == 0],4)
+    
+    normal_len = int(len(normal)*0.7)
+    default_len = int(len(default) * 0.7)
+    training = normal[:normal_len].append(default[:default_len])
+    
+    trainingLabels = list(training['df'])
+    trainingSet = training.drop(labels=['df'], axis=1)
+    
+    testSet = normal[normal_len:].append(default[default_len:])
+    
+#    trainingSet = trainingSet*100
+    dataMat = trainingSet.values.astype('float64')
+    trainWeights = stocGradAscent1(dataMat, trainingLabels, 1000)
+    
+#    errorCount = 0; numTestVec = 0.0
+    Normal_errorCount = 0;Default_errorCount = 0
+    
+    default_num = len(testSet[testSet['df'] == 1.0])
+    normal_num = len(testSet[testSet['df'] == 0.0])
+    testLabels = testSet['df']
+    testSet = testSet.drop(labels=['df'], axis=1)
+#    testSet = testSet * 100
+    index = 0
+    for line in testSet.values:
+        index += 1
+        df = testLabels.values[index - 1]
+        if int(classifyVector(line.astype('float64'), trainWeights))!= int(df):
+            if int(df) == 0:
+                Normal_errorCount += 1
+            else:
+                Default_errorCount += 1
+
+    default_errorRate = (float(Default_errorCount)/default_num)
+    normal_errorRate = (float(Normal_errorCount)/normal_num)
+    print("default_num: %d,normal_num: %d"%(default_num, normal_num))
+    print("default_errorRate: %d : %f, normal_errorRate:%d : %f" %(Default_errorCount,default_errorRate,Normal_errorCount,normal_errorRate))
+    return Default_errorCount,Normal_errorCount
+
+def gradAscent(dataMatIn, classLabels):
+    dataMatrix = mat(dataMatIn)             #convert to NumPy matrix
+    labelMat = mat(classLabels).transpose() #convert to NumPy matrix
+    m,n = shape(dataMatrix)
+    alpha = 0.001
+    maxCycles = 500
+    weights = ones((n,1))
+    for k in range(maxCycles):              #heavy on matrix operations
+        h = sigmoid(dataMatrix*weights)     #matrix mult
+        error = (labelMat - h)              #vector subtraction
+        weights = weights + alpha * dataMatrix.transpose()* error #matrix mult
+    return weights
+
+def stocGradAscent0(dataMatrix, classLabels):
+    m,n = shape(dataMatrix)
+    alpha = 0.01
+    weights = ones(n)   #initialize to all ones
+    for i in range(m):
+        h = sigmoid(sum(dataMatrix[i]*weights))
+        error = classLabels[i] - h
+        weights = weights + alpha * error * dataMatrix[i]
+    return weights
+
+if __name__ == "__main__":
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler
+    
+    
+    tSet = result
+    probs = result.drop(labels=['df'], axis=1)
+    scaler.fit_transform(probs)
+    #    keep 4 dot points
+    default = round(tSet[tSet['df'] == 1],4) 
+    normal = round(tSet[tSet['df'] == 0],4)
+    
+    normal_len = int(len(normal)*0.7)
+    default_len = int(len(default) * 0.7)
+    training = normal[:normal_len].append(default[:default_len])
+    
+    trainingLabels = list(training['df'])
+    trainingSet = training.drop(labels=['df'], axis=1)
+    
+    testSet = normal[normal_len:].append(default[default_len:])
+    
+#    trainingSet = trainingSet*100
+    dataMat = trainingSet.values.astype('float64')
+#    trainWeights = stocGradAscent1(dataMat, trainingLabels, 1000)
+    trainWeights = stocGradAscent0(dataMat, trainingLabels)
+#    errorCount = 0; numTestVec = 0.0
+    Normal_errorCount = 0;
+    Default_errorCount = 0
+    
+    default_num = len(testSet[testSet['df'] == 1.0])
+    normal_num = len(testSet[testSet['df'] == 0.0])
+    testLabels = testSet['df']
+    testSet = testSet.drop(labels=['df'], axis=1)
+#    testSet = testSet * 100
+    index = 0
+    for line in testSet.values:
+        index += 1
+        df = testLabels.values[index - 1]
+        if int(classifyVector(line.astype('float64'), trainWeights))!= int(df):
+            if int(df) == 0:
+                Normal_errorCount += 1
+            else:
+                Default_errorCount += 1
+
+    default_errorRate = (float(Default_errorCount)/default_num)
+    normal_errorRate = (float(Normal_errorCount)/normal_num)
+    print("default_num: %d,normal_num: %d"%(default_num, normal_num))
+    print("default_errorRate: %d : %f, normal_errorRate:%d : %f" %(Default_errorCount,default_errorRate,Normal_errorCount,normal_errorRate))
+#    return Default_errorCount,Normal_errorCount
+
+    weights = gradAscent(dataMat, trainingLabels)
+    problist = list()
+    for line in probs.values:
+        problist.append(prob(line.astype('float64'), weights))
+
+    for a in problist:
+        if a!=0.0: print(a)
+
+
