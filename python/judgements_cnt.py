@@ -15,7 +15,6 @@ from bson.son import SON
 
 client = MongoClient()
 client = MongoClient("mongodb://192.168.10.60:27017/")
-db = client.companies
 
 #input_data = db.JudgementDetail
 #data = pd.DataFrame(list(input_data.find()))
@@ -43,6 +42,10 @@ for ii in range(len(columns)):
 result=pd.concat(dflist,axis=1)
 result['company'] = result.index.values
 insert_record = json.loads(result.to_json(orient='records'))
+
+client = MongoClient("mongodb://192.168.10.133:27017/")
+db = client.bonds
+
 ret = db.defendant_count.insert_many(insert_record)
 print(ret)
 
