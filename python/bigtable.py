@@ -44,18 +44,24 @@ def prob(inX, weights):
     return prob
 
 def default_sample():
-    code = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'code':1,'COMP_NAME':1}) #,'COMP_NAME':1
-    record = pd.DataFrame(list(code)) # 获取制造业的代码
+    code = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20151231"}]},{'_id':0,'code':1,'COMP_NAME':1}) #,'COMP_NAME':1
+    manus = pd.DataFrame(list(code)) # 获取制造业的代码 
     
     qv = db.default_2016.find({'rptDate':'20151231'},{'_id':0,'rptDate':0}) 
-    ratios = pd.DataFrame(list(qv)) # 获取技术性违约样本
+    ratios = pd.DataFrame(list(qv)) # 获取技术性违约样本，从 2015年的财报中选择
     
     qv = db.issuers_info.find({'df':1},{'_id':0,'code':1})
     real_df = pd.DataFrame(list(qv)) #获取真实违约样本的代码
     
-    real_df_manufacture = real_df.merge(record,on='code')
-    real_df_manufacture['df'] = 2
-    result = record.merge(ratios,on='code')
+    print('违约的制造业：')
+    print(manus.merge(real_df,on='code'))
+    
+    real_df_ratio = real_df.merge(ratios, on='code')
+    real_df_ratio = real_df_ratio.dropna(axis=0,how='any',thresh=2)
+    real_df_manufacture = real_df_ratio.merge(manus,on='code')
+    real_df_manufacture['df'] = 1.0
+    
+    result = manus.merge(ratios,on='code')
     
     result = result.fillna(result.mean())  # 用均值填充
     result = result.dropna(axis=0, how='any',thresh=2)
@@ -75,11 +81,16 @@ def default_sample():
     df = np.ones(len(df_code))
     samples = pd.DataFrame([df_code,df], ['code','df'])
     samples = samples.T
+    
+    print('真实违约与技术性违约的交集')
+    print((samples.merge(real_df_manufacture,on='code')))
+    real_df_manufacture.pop('COMP_NAME')
+    samples = samples.append(real_df_manufacture,ignore_index=True)
     return samples,real_df_manufacture
 
 default,real_df_manu = default_sample()
-
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
+
 #record = pd.DataFrame(list(query)) #Convert the input to an array.
 #result = record.dropna(axis=0, how='any')
 #result = result.merge(samples,on='code', how = 'left')
@@ -176,10 +187,12 @@ for ii in range(len(report)):
 zzz['code']=code
 zzz['df']=df
 
-
 doc = zzz.sort_values('sum')
 doc = doc.reset_index(drop=True)
 print(doc[doc['df']==1.0])
+
+doc = doc.merge(real_df_manu,on='code',how='left')
+print(doc[doc['df_y']==1.0])
 doc.to_csv("result0516.csv")
 
 #from sklearn.linear_model import LogisticRegression as LR
