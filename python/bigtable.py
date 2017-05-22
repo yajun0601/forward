@@ -14,6 +14,33 @@ from numpy import *
 
 client = MongoClient("mongodb://127.0.0.1:27017/")
 db = client.bonds
+
+def loadDataSet(fileName, delim='\t'):
+    fr = open(fileName)
+    stringArr = [line.strip().split(delim) for line in fr.readlines()]
+    datArr = [map(float,line) for line in stringArr]
+    return mat(datArr)
+
+def pca(dataMat, topNfeat=9999999):
+    meanVals = mean(dataMat, axis=0)
+    meanRemoved = dataMat - meanVals #remove mean
+    covMat = cov(meanRemoved, rowvar=0)
+    eigVals,eigVects = linalg.eig(mat(covMat))
+    eigValInd = argsort(eigVals)            #sort, sort goes smallest to largest
+    eigValInd = eigValInd[:-(topNfeat+1):-1]  #cut off unwanted dimensions
+    redEigVects = eigVects[:,eigValInd]       #reorganize eig vects largest to smallest
+    lowDDataMat = meanRemoved * redEigVects#transform data into new dimensions
+    reconMat = (lowDDataMat * redEigVects.T) + meanVals
+    return lowDDataMat, reconMat
+
+def replaceNanWithMean(): 
+    datMat = loadDataSet('secom.data', ' ')
+    numFeat = shape(datMat)[1]
+    for i in range(numFeat):
+        meanVal = mean(datMat[nonzero(~isnan(datMat[:,i].A))[0],i]) #values that are not NaN (a number)
+        datMat[nonzero(isnan(datMat[:,i].A))[0],i] = meanVal  #set NaN values to mean
+    return datMat
+
 def sigmoid(inX):
     return float(1.0/(1+exp(-inX)))
 
@@ -91,11 +118,9 @@ def default_sample():
 default,real_df_manu = default_sample()
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
 
-#record = pd.DataFrame(list(query)) #Convert the input to an array.
-#result = record.dropna(axis=0, how='any')
-#result = result.merge(samples,on='code', how = 'left')
-#result = result.fillna(0)
-#result.pop('code')
+
+first_defaults = db.default.aggregate([{'$group' : {'_id' : "$发行人", 'date' : {'$first':"$发生日期"}}}])
+first_defaults = pd.DataFrame(list(first_defaults))
 
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'code':1})
 manufactures = pd.DataFrame(list(query)) #Convert the input to an array.
@@ -194,6 +219,13 @@ print(doc[doc['df']==1.0])
 doc = doc.merge(real_df_manu,on='code',how='left')
 print(doc[doc['df_y']==1.0])
 doc.to_csv("result0516.csv")
+
+
+import matplotlib.pyplot as plt
+
+x = list(doc[doc['df_x']==1.0].index)
+plt.hist(x,10)
+plt.show()
 
 #from sklearn.linear_model import LogisticRegression as LR
 #from sklearn.linear_model import RandomizedLogisticRegression as RLR 
