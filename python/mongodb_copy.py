@@ -13,7 +13,7 @@ import json
 
 client = MongoClient()
 client = MongoClient("mongodb://192.168.10.60:27017/")
-db = client.bonds
+db = client.stocks
 #input_data = db.bond_profit
 #data = pd.DataFrame(list(input_data.find()))
 #
@@ -28,11 +28,10 @@ rptDate=['20131231','20141231','20151231']
 
 input_data = db.bond_profit
 #data = pd.DataFrame(list(input_data.find()))
-
-dest_db.bond_profit.insert_many(input_data.find())
+dest_db.bond_cashflow.insert_many(db.bond_cashflow.find())
+dest_db.bond_profit.insert_many(db.bond_profit.find())
 dest_db.bond_balance.insert_many(db.bondBalance.find())
 dest_db.issuers_info.insert_many(db.issuers_info.find())
-
 dest_db.default_ratios.insert_many(db.default_ratios.find())
 dest_db.default_2016.insert_many(db.default_2016.find())
 
