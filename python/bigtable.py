@@ -15,12 +15,6 @@ from numpy import *
 client = MongoClient("mongodb://127.0.0.1:27017/")
 db = client.bonds
 
-def loadDataSet(fileName, delim='\t'):
-    fr = open(fileName)
-    stringArr = [line.strip().split(delim) for line in fr.readlines()]
-    datArr = [map(float,line) for line in stringArr]
-    return mat(datArr)
-
 def pca(dataMat, topNfeat=9999999):
     meanVals = mean(dataMat, axis=0)
     meanRemoved = dataMat - meanVals #remove mean
@@ -103,7 +97,8 @@ def default_sample():
     result = result.sort_values('OCFTOSHORTDEBT',axis=0, ascending=1)
     OCFTOSHORTDEBT = set(result['code'][:num])
     
-    defaults = (OCFTOINTEREST.union(OCFTOQUICKDEBT).union(OCFTOSHORTDEBT))
+#    defaults = (OCFTOINTEREST.union(OCFTOQUICKDEBT).union(OCFTOSHORTDEBT))
+    defaults = (OCFTOQUICKDEBT).union(OCFTOSHORTDEBT)
     df_code = np.array(list(defaults))
     df = np.ones(len(df_code))
     samples = pd.DataFrame([df_code,df], ['code','df'])
@@ -185,7 +180,7 @@ default_num = len(testSet[testSet['df'] == 1.0])
 normal_num = len(testSet[testSet['df'] == 0.0])
 testLabels = testSet.pop('df')
 Normal_errorCount = 0;Default_errorCount = 0
-    
+
 index = 0
 for line in testSet.values:
     index += 1
@@ -201,14 +196,94 @@ normal_errorRate = (float(Normal_errorCount)/normal_num)
 print("default_num: %d,normal_num: %d"%(default_num, normal_num))
 print("default_errorRate: %d : %f, normal_errorRate:%d : %f" %(Default_errorCount,default_errorRate,Normal_errorCount,normal_errorRate))
 
+from cm_plot import * #导入自行编写的混淆矩阵可视化函数
+def comp_plot(n,predict_result):
+    cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
+
+def plot_roc(n,net, test):
+    from sklearn.metrics import roc_curve #导入ROC曲线函数
+    import matplotlib.pyplot as plt
+    predict_result = net.predict(test[:,:-1]).reshape(len(test))
+    fpr, tpr, thresholds = roc_curve(test[:,-1], predict_result, pos_label=1)
+    plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
+    plt.xlabel('False Positive Rate') #坐标轴标签
+    plt.ylabel('True Positive Rate') #坐标轴标签
+    plt.ylim(0,1.05) #边界范围
+    plt.xlim(0,1.05) #边界范围
+    plt.legend(loc=4) #图例
+    plt.show() #显示作图结果
+
+#构建LM神经网络模型
+#def LM_NN(result):
+from keras.models import Sequential #导入神经网络初始化函数
+from keras.layers.core import Dense, Activation #导入神经网络层函数、激活函数
+#    dd = pd.DataFrame(Variance)
+dd = default.merge(normal, how='outer')
+#    dd['flag'] = df_flag
+dd=dd.sort_values(1,ascending=0)
+nn_data = dd.as_matrix()
+#shuffle(nn_data)
+p = 0.8 # train/test ratio
+m,n = shape(nn_data)
+train = nn_data[:int(m*p),:]
+test = nn_data[int(m*p):,:]
+print(sum(train[:,-1]),sum(test[:,-1]))
+netfile = '../tmp/net.model' #构建的神经网络模型存储路径
+
+net = Sequential() #建立神经网络
+net.add(Dense(input_dim = n-1, output_dim = 100)) #添加输入层（3节点）到隐藏层（10节点）的连接
+net.add(Activation('relu')) #隐藏层使用relu激活函数
+net.add(Dense(input_dim = 100, output_dim = 20)) #添加输入层（3节点）到隐藏层（10节点）的连接
+net.add(Activation('relu')) #隐藏层使用relu激活函数
+net.add(Dense(input_dim = 20, output_dim = 1)) #添加隐藏层（10节点）到输出层（1节点）的连接
+net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数  softmax: posibility
+net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
+m,n = np.shape(train)
+net.fit(train[:,:n-1], train[:,n-1], nb_epoch=1000, batch_size=1) #训练模型，循环1000次
+net.save_weights(netfile) #保存模型
+predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
+comp_plot(n,predict_result)
+plot_roc(n,net,test)
+'''这里要提醒的是，keras用predict给出预测概率，predict_classes才是给出预测类别，而且两者的预测结果都是n x 1维数组，而不是通常的 1 x n'''
+
+''' CART DecisionTree '''
+from sklearn.tree import DecisionTreeClassifier
+treefile = '../tmp/tree.pkl'
+tree = DecisionTreeClassifier()
+tree.fit(train[:,:n-1], train[:,n-1])
+
+from sklearn.externals import joblib
+joblib.dump(tree,treefile)
+
+cm_plot(train[:,n-1],tree.predict(train[:,:n-1])).show()
+''' CART DecisionTree '''
+from sklearn.metrics import roc_curve #导入ROC曲线函数
+import matplotlib.pyplot as plt
+
+fpr, tpr, thresholds = roc_curve(test[:,-1], tree.predict_proba(test[:,:-1])[:,1], pos_label=1)
+plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
+plt.xlabel('False Positive Rate') #坐标轴标签
+plt.ylabel('True Positive Rate') #坐标轴标签
+plt.ylim(0,1.05) #边界范围
+plt.xlim(0,1.05) #边界范围
+plt.legend(loc=4) #图例
+plt.show() #显示作图结果
 
 df = report.pop('df')
+import matplotlib.pyplot as plt
+fig = plt.figure()
+ax = fig.add_subplot(111)
+lowDMat,reconMat=pca(report.values,2)
+#ax.scatter(lowDMat[:,0].flatten().A[0], lowDMat[:,1].flatten().A[0],marker='^', s=90)
+ax.scatter(reconMat[:,0].flatten().A[0], reconMat[:,1].flatten().A[0],
+marker='o', s=50, c='red')
+plt.show() 
+
 zzz = pd.DataFrame()
 for ii in range(len(report)):    
     value=sum(report.values[ii]*trainWeights)
 #    print(ii,manu)
     zzz = zzz.append({'sum':value}, ignore_index=True)
-
 zzz['code']=code
 zzz['df']=df
 
@@ -224,6 +299,7 @@ doc.to_csv("result0516.csv")
 import matplotlib.pyplot as plt
 
 x = list(doc[doc['df_x']==1.0].index)
+x.append(1) # add one fake at begaining
 plt.hist(x,10)
 plt.show()
 

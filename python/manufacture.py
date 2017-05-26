@@ -13,11 +13,8 @@ from random import shuffle
 from sklearn.datasets import load_iris
  
 #导入IRIS数据集
-iris = load_iris()
-#特征矩阵
-iris.data
-#目标向量
-iris.target
+#iris = load_iris()
+
 #import json
 #from bson.son import SON
 #
@@ -111,8 +108,9 @@ def LogisticRegression(result):
     lr.fit(x, y) # 用筛选后的特征数据来训练模型
     print(u'训练结束')
     print(u'平均正确率为：%s' % lr.score(x, y))
-from cm_plot import * #导入自行编写的混淆矩阵可视化函数
+
 def comp_plot(n,predict_result):
+    from cm_plot import * #导入自行编写的混淆矩阵可视化函数
     cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
 
 def plot_roc(n,net, test):
@@ -256,7 +254,6 @@ def stocGradAscent0(dataMatrix, classLabels):
 if __name__ == "__main__":
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler
-    
     tSet = result
     
 '''
