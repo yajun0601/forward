@@ -13,14 +13,17 @@ from pymongo import *
 import json
 from bson.son import SON
 
-client = MongoClient()
 client = MongoClient("mongodb://192.168.10.60:27017/")
-
+db = client.companies
 #input_data = db.JudgementDetail
 #data = pd.DataFrame(list(input_data.find()))
-columns = ['2016Q1','2016Q2','2016Q3','2016Q4','2017Q1']
+columns = ['2014Q1','2014Q2','2014Q3','2014Q4',
+           '2015Q1','2015Q2','2015Q3','2015Q4',
+           '2016Q1','2016Q2','2016Q3','2016Q4','2017Q1']
 #columns = ['2016Q1','2016Q2']
-datelist = ['2015-12-31T00:00:00', '2016-03-31T00:00:00','2016-06-30T00:00:00', '2016-09-30T00:00:00','2016-12-31T00:00:00','2017-03-31T00:00:00']
+datelist = ['2013-12-31T00:00:00', '2014-03-31T00:00:00','2014-06-30T00:00:00', '2014-09-30T00:00:00',
+            '2014-12-31T00:00:00', '2015-03-31T00:00:00','2015-06-30T00:00:00', '2015-09-30T00:00:00',
+            '2015-12-31T00:00:00', '2016-03-31T00:00:00','2016-06-30T00:00:00', '2016-09-30T00:00:00','2016-12-31T00:00:00','2017-03-31T00:00:00']
 dflist = list()
 for ii in range(len(columns)):
     print(columns[ii], datelist[ii], datelist[ii + 1])
@@ -41,14 +44,14 @@ for ii in range(len(columns)):
 #db.command('aggregate', 'JudgementDetail', pipeline=pipeline, explain=True)
 result=pd.concat(dflist,axis=1)
 result['company'] = result.index.values
+result = result.fillna(0)
 insert_record = json.loads(result.to_json(orient='records'))
 
-client = MongoClient("mongodb://192.168.10.133:27017/")
+#client = MongoClient("mongodb://192.168.10.60:27017/")
+
 db = client.bonds
-
-ret = db.defendant_count.insert_many(insert_record)
+ret = db.defendant_count141516.insert_many(insert_record)
 print(ret)
-
 
 
 '''

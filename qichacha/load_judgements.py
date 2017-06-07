@@ -18,7 +18,7 @@ db = client.companies
 jd_collection = db.JudgementDetail
 
 #FILE='data/t_judge_detail_json.txt'
-FILE='data/_judge_detail_json.txt'
+FILE='data/深圳正前方数据_裁判文书20170508.txt'
 def load(filename):
     with open(filename) as json_file:
         data = json.load(json_file)
@@ -50,8 +50,12 @@ def load_detail():
 if __name__ == "__main__":
     print('parsing ... ')
     ii = 0
+    found = 0
+    insert = 0
+    total = 0
     for line in open(FILE):  
 #        print(line)
+        total += 1
         index = line.find('\t')
         resp = line[index:]
         ret = json.loads(resp)
@@ -64,11 +68,18 @@ if __name__ == "__main__":
             
             in_collection = jd_collection.find_one({'_id':detail['_id']})
             if in_collection is None:   # only if the id does not exist
-                print('insert detail:' + detail['_id'])
-                jd_collection.insert_one(detail)
+                insert += 1
+                print(' '+ str(insert) +' insert detail:' + detail['_id'])
+#                jd_collection.insert_one(detail)
+            else:
+                found += 1
+                print(' ' + str(found) + 'found: ' + detail['_id'])
+            
             # TODO: if the record need to be updated?
             #return detail
         else:
             print(ret)
+            
+    print("insert: %d, found: %d, total: %d"%(insert,found,total))
             #return None
     

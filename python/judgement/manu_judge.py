@@ -6,7 +6,6 @@ Created on Tue Jun  6 14:14:47 2017
 @author: yajun
 """
 
-
 import pandas as pd
 import numpy  as np
 from pymongo import *
@@ -68,7 +67,25 @@ def create_database():
     
     ret = bond_db.quarter_judgements.insert_many(insert_record)
     print(ret)
-  
-  
-  
-  
+def tmp():
+    '''
+    读取每季度 每个公司被告次数
+    db.getCollection('quarter_judgements').aggregate([
+    { "$project": {"Defendantlist":1, "IsValid":1, "year":1, "quarter":1}},
+    { "$unwind": "$Defendantlist"},
+    { "$group": {"_id":{"comp":"$Defendantlist","year":"$year","quarter":"$quarter"}, "cnt":{"$sum":1}}},
+    { "$sort" :{"cnt": -1}}
+    ])
+    '''
+    pipeline =   [
+    { "$project": {"Defendantlist":1, "IsValid":1, "year":1, "quarter":1}},
+    { "$unwind": "$Defendantlist"},
+    { "$group": {"_id":{"comp":"$Defendantlist","year":"$year","quarter":"$quarter"}, "cnt":{"$sum":1}}},
+    { "$sort" : SON([("cnt", -1)])}
+    ]
+    query_value = (list(db.quarter_judgements.aggregate(pipeline)))
+    df = pd.DataFrame(query_value)
+    ''' Y_start,Q_start,Y_end,Q_end'''
+    df.iloc[0].values[0]['comp']
+    str(df.iloc[0].values[0]['year']) + '_' + str(df.iloc[0].values[0]['quarter'])
+    df.iloc[0].values[1]
