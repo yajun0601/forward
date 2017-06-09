@@ -70,7 +70,7 @@ result.pop('code')
 from sklearn.feature_selection import VarianceThreshold
 #方差选择法，返回值为特征选择后的数据
 #参数threshold为方差的阈值
-VarianceThreshold(threshold=3).fit_transform(iris.data)
+#VarianceThreshold(threshold=3).fit_transform(iris.data)
 #Variance = VarianceThreshold(threshold=1).fit_transform(X)
 
 #StandardScaler.fit_transform(iris.data)
@@ -109,8 +109,8 @@ def LogisticRegression(result):
     print(u'训练结束')
     print(u'平均正确率为：%s' % lr.score(x, y))
 
+from cm_plot import * #导入自行编写的混淆矩阵可视化函数
 def comp_plot(n,predict_result):
-    from cm_plot import * #导入自行编写的混淆矩阵可视化函数
     cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
 
 def plot_roc(n,net, test):
