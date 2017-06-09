@@ -35,3 +35,13 @@ dest_db.issuers_info.insert_many(db.issuers_info.find())
 dest_db.default_ratios.insert_many(db.default_ratios.find())
 dest_db.default_2016.insert_many(db.default_2016.find())
 
+
+
+# insert dest db as condition limits
+dest_db.bond_cashflow.insert_many(db.bond_cashflow.find({"rptDate" : "20161231"}))
+dest_db.bond_profit.insert_many(db.bond_profit.find({"rptDate" : "20161231"}))
+dest_db.bond_balance.insert_many(db.bondBalance.find({"rptDate" : "20161231"}))
+
+query = db.bond_balance.find({"$or":[{"rptDate" : "20161231"},{"rptDate" : "20151231"}]},{'_id':0,'COMP_NAME':0,'CITY':0,'LISTINGORNOT':0,'PROVINCE':0})
+balance=pd.DataFrame(list(query))
+shape(balance)
