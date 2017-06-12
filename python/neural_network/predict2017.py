@@ -13,8 +13,8 @@ from pymongo import *
 from numpy import *
 
 
-#client = MongoClient("mongodb://127.0.0.1:27017/")
-client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
+client = MongoClient("mongodb://127.0.0.1:27017/")
+#client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
 db = client.bonds
 
 def default_sample():
@@ -61,15 +61,15 @@ def default_sample():
     print((samples.merge(real_df_manufacture,on='code')))
     real_df_manufacture.pop('COMP_NAME')
     samples = samples.append(real_df_manufacture,ignore_index=True)
-    return samples,real_df_manufacture
+    return samples[['code','df']],real_df_manufacture
 
 default,real_df_manu = default_sample()
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
 
 #rptDates={"$or":[{"rptDate" : "20151231"},{"rptDate" : "20161231"}]}
 rptDates={"$or":[{"rptDate" : "20161231"},{"rptDate" : "20151231"}]}
-first_defaults = db.default.aggregate([{'$group' : {'_id' : "$发行人", 'date' : {'$first':"$发生日期"}}}])
-first_defaults = pd.DataFrame(list(first_defaults))
+#first_defaults = db.default.aggregate([{'$group' : {'_id' : "$发行人", 'date' : {'$first':"$发生日期"}}}])
+#first_defaults = pd.DataFrame(list(first_defaults))
 
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'code':1})
 manufactures = pd.DataFrame(list(query)) #Convert the input to an array.
@@ -86,55 +86,44 @@ profit = pd.DataFrame(list(query)) #Convert the input to an array.
 tmp = balance.merge(cashflow, on=['code','rptDate'])
 financial_report = tmp.merge(profit, on=['code','rptDate'])  # finacial report of 2015
 
+#financial_report = financial_report.merge(manufactures, on='code')    
+                            
 report = financial_report.dropna(axis = 1, how='any', thresh=500)                   
 report = report.fillna(report.mean())
 
 report2015 = report[report['rptDate'] == '20151231']
 report2015.pop('rptDate')
-report2016 = report[report['rptDate'] == '20161231'].pop
+report2016 = report[report['rptDate'] == '20161231']
 report2016.pop('rptDate')
 
-#import numpy as np
-#from sklearn.preprocessing import Imputer
-##均值填补NaN  axis=0是行 1是列
-#imp = Imputer(missing_values='NaN', strategy='mean', axis=1)
-#value = finacial_report.values
-#imp.fit(value)
-#imp = Imputer(missing_values='nan, strategy='mean', axis=0)
-# 整合成一张大表，标注 'df' 筛选出制造业 为 0 和 1
+shape(report2015)
+shape(report2016)
+report2015 = (report2015.merge(manufactures,on='code'))
+report2016 = (report2016.merge(manufactures,on='code'))
+# merge default falg
+report2015 = report2015.merge(default, how='left',on='code')
+report2015 = report2015.fillna(0)
 
-manu_report = manufactures.merge(report2015,on='code')
-code = manu_report.pop('code')
+code = report2015.pop('code')
+df = report2015.pop('df')
 
-report = manu_report.fillna(manu_report.mean())
-report['code'] = code
-report.dropna(axis=1,how='any',inplace=True)
-
-report = report.merge(default, how='left',on='code')
-report = report.fillna(0)
-
-#insert_record = json.loads(report.to_json(orient='records'))
-#ret = db.manufacture2015.insert_many(insert_record)
-#replace : boolean, optional do not replace
-code = report.pop('code')
-df = report.pop('df')
+code16 = report2016.pop('code')
+#df16 = report2016.pop('df')
 from sklearn.preprocessing import StandardScaler
-standard =  StandardScaler().fit_transform(report.values)
-report = pd.DataFrame(standard)
-report['df'] = df
-default = report[report['df']==1.0]
-normal = report[report['df']==0.0]#.sample(len(default)*2)
+standard =  StandardScaler().fit_transform(report2015.values)
+report15s = pd.DataFrame(standard)
+report15s['df'] = df
+
+standard16 =  StandardScaler().fit_transform(report2016.values)
+report16s = pd.DataFrame(standard16)
+         
+default = report15s[report15s['df']==1.0]
+normal = report15s[report15s['df']==0.0]#.sample(len(default)*2)
 
 #def LogisticRegression(result):
 data = default.merge(normal, how='outer') # trainning samples
 
-
 # 归一化
-df_flag = data.pop('df')
-#from sklearn.preprocessing import StandardScaler
-#X = StandardScaler().fit_transform(data.values)
-
-
 from cm_plot import * #导入自行编写的混淆矩阵可视化函数
 def comp_plot(n,predict_result):
     cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
@@ -158,7 +147,6 @@ from keras.models import Sequential #导入神经网络初始化函数
 from keras.layers.core import Dense, Activation #导入神经网络层函数、激活函数
 #    dd = pd.DataFrame(Variance)
 dd = default.merge(normal, how='outer')
-#    dd['flag'] = df_flag
 dd=dd.sort_values(1,ascending=0)
 nn_data = dd.as_matrix()
 #shuffle(nn_data)
@@ -183,6 +171,14 @@ net.save_weights(netfile) #保存模型
 predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
 comp_plot(n,predict_result)
 plot_roc(n,net,test)
+
+predict_result16 = net.predict_classes(report16s.as_matrix()).reshape(len(report16s))
+d2016=pd.DataFrame([code16.values,predict_result16],['code','df']).T
+print(d2016[d2016['df']==1])
+query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':1,'code':1})
+manus = pd.DataFrame(list(query))
+manus = manus.merge(d2016,on='code')
+manus.to_excel("manufacture2017.xlsx")
 '''这里要提醒的是，keras用predict给出预测概率，predict_classes才是给出预测类别，而且两者的预测结果都是n x 1维数组，而不是通常的 1 x n'''
 
 '''
