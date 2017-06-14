@@ -115,23 +115,6 @@ normal = report15s[report15s['df']==0.0]#.sample(len(default)*2)
 data = default.merge(normal, how='outer') # trainning samples
 
 # 归一化
-from cm_plot import * #导入自行编写的混淆矩阵可视化函数
-def comp_plot(n,predict_result):
-    cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
-
-def plot_roc(n,net, test):
-    from sklearn.metrics import roc_curve #导入ROC曲线函数
-    import matplotlib.pyplot as plt
-    predict_result = net.predict(test[:,:-1]).reshape(len(test))
-    fpr, tpr, thresholds = roc_curve(test[:,-1], predict_result, pos_label=1)
-    plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
-    plt.xlabel('False Positive Rate') #坐标轴标签
-    plt.ylabel('True Positive Rate') #坐标轴标签
-    plt.ylim(0,1.05) #边界范围
-    plt.xlim(0,1.05) #边界范围
-    plt.legend(loc=4) #图例
-    plt.show() #显示作图结果
-
 #构建LM神经网络模型
 #def LM_NN(result):
 from keras.models import Sequential #导入神经网络初始化函数
@@ -159,11 +142,14 @@ net.add(Dense(input_dim = 32, output_dim = 1)) #添加隐藏层（10节点）到
 net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数  softmax: posibility
 net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
 m,n = np.shape(train)
-net.fit(train[:,:n-1], train[:,n-1], nb_epoch=200, batch_size=16) #训练模型，循环1000次
+net.fit(train[:,:n-1], train[:,n-1], nb_epoch=1000, batch_size=4) #训练模型，循环1000次
 net.save_weights(netfile) #保存模型
-predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
-comp_plot(n,predict_result)
-plot_roc(n,net,test)
+predict_result = net.predict_classes(test[:,:n-1]).reshape(len(test)) #预测结果变形
+#comp_plot(n,predict_result)
+import cm_plot  #导入自行编写的混淆矩阵可视化函数
+cm_plot.cm_plot(test[:,n-1], predict_result).show()
+import roc_plot
+roc_plot.roc_plot(n,net,test).show()
 
 predict_result16 = net.predict_classes(report16s.as_matrix()).reshape(len(report16s))
 d2016=pd.DataFrame([code16.values,predict_result16],['code','df']).T
@@ -180,3 +166,6 @@ data = pd.read_excel(datafile,sheetname="issuers",header=0)
 default_2017=manus[manus['df']==1]
 res = default_2017.merge(data, on='COMP_NAME')
 print(res)
+
+com = manus.merge(data, on='COMP_NAME')
+#shape(com)
