@@ -136,7 +136,7 @@ nn_data = dd.as_matrix()
 #shuffle(nn_data)
 p = 0.8 # train/test ratio
 m,n = shape(nn_data)
-train = nn_data[:int(m*p/4),:]
+train = nn_data[:int(m*p),:]
 test = nn_data[int(m*p):,:]
 print(sum(train[:,-1]),sum(test[:,-1]))
 netfile = './net2016.model' #构建的神经网络模型存储路径
@@ -152,7 +152,7 @@ net.add(Dense(input_dim = 20, output_dim = 1)) #添加隐藏层（10节点）到
 net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数  softmax: posibility
 net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
 m,n = np.shape(train)
-net.fit(train[:,:n-1], train[:,n-1], nb_epoch=200, batch_size=2) #训练模型，循环1000次
+net.fit(train[:,:n-1], train[:,-1], nb_epoch=1000, batch_size=1) #训练模型，循环1000次
 #net.save_weights(netfile) #保存模型
 predict_result = net.predict_classes(test[:,:n-1]).reshape(len(test)) #预测结果变形
 import cm_plot  #导入自行编写的混淆矩阵可视化函数
