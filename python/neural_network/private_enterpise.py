@@ -135,24 +135,24 @@ net = Sequential() #建立神经网络
 net.add(Dense(input_dim = n-1, output_dim = 64)) #添加输入层（3节点）到隐藏层（10节点）的连接
 net.add(Activation('relu')) #隐藏层使用relu激活函数
 #net.add(Dropout(0.5)) # over fitting
-net.add(Dense(input_dim = 64, output_dim = 64)) #添加隐藏层1
+net.add(Dense(input_dim = 64, output_dim = 16)) #添加隐藏层1
 net.add(Activation('relu')) #隐藏层使用relu激活函数
 #net.add(Dropout(0.5)) # over fitting
-net.add(Dense(input_dim = 64, output_dim = 16)) #添加隐藏层2
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-##net.add(Dropout(0.5)) # over fitting
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层3
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层4
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层5
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层6
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层7
-net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层8
-net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层2
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+###net.add(Dropout(0.5)) # over fitting
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层3
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层4
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层5
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层6
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层7
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
+#net.add(Dense(input_dim = 16, output_dim = 16)) #添加隐藏层8
+#net.add(Activation('relu')) #隐藏层使用relu激活函数
 net.add(Dense(input_dim = 16, output_dim = 1)) #添加输出层
 net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数  softmax: posibility
 net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
@@ -177,10 +177,10 @@ industry = d2016.merge(get_issuer(),on='code')
 df=industry[industry['df']==1]['COMP_NAME']
 print(df)
 
-from keras.utils import plot_model
-plot_model(net, to_file='model.png')
-
-from IPython.display import SVG
-from keras.utils.vis_utils import model_to_dot
-SVG(model_to_dot(net).create(prog='dot',format='svg'))
-plot_model(net, to_file='model1.png')
+#from keras.utils import plot_model
+#plot_model(net, to_file='model.png')
+#
+#from IPython.display import SVG
+#from keras.utils.vis_utils import model_to_dot
+#SVG(model_to_dot(net).create(prog='dot',format='svg'))
+#plot_model(net, to_file='model1.png')
