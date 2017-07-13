@@ -80,7 +80,7 @@ for rptdate in dates:
     df['rptDate'] = [rptdate for code in datart.Codes]
     
     insert_record = json.loads(df.to_json(orient='records'))
-    ret = collection.insert(insert_record)
+    ret = collection.insert_many(insert_record)
     
     for x in range(m):
         stocks = ",".join(b[x])
@@ -99,5 +99,5 @@ for rptdate in dates:
         df['rptDate'] = [rptdate for code in datart.Codes]
         
         insert_record = json.loads(df.to_json(orient='records'))
-        ret = collection.insert(insert_record)
+        ret = collection.insert_many(insert_record)
         print(ret,stocks,rptdate)
