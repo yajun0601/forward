@@ -8,7 +8,6 @@ Created on Thu Jun  8 10:31:19 2017
 
 import pandas as pd
 import numpy  as np
-import json
 from pymongo import *
 from numpy import *
 
@@ -20,8 +19,9 @@ db = client.bonds
 def default_sample():
     code = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20151231"}]},{'_id':0,'code':1,'COMP_NAME':1}) #,'COMP_NAME':1
     manus = pd.DataFrame(list(code)) # 获取制造业的代码 
-    
-    qv = db.default_2016.find({'rptDate':'20151231'},{'_id':0,'rptDate':0}) 
+
+#    make traing set from 2016
+    qv = db.default_2016.find({'rptDate':'20161231'},{'_id':0,'rptDate':0}) 
     ratios = pd.DataFrame(list(qv)) # 获取技术性违约样本，从 2015年的财报中选择
     
     qv = db.issuers_info.find({'df':1},{'_id':0,'code':1})
@@ -50,8 +50,8 @@ def default_sample():
     result = result.sort_values('OCFTOSHORTDEBT',axis=0, ascending=1)
     OCFTOSHORTDEBT = set(result['code'][:num])
     
-#    defaults = (OCFTOINTEREST.union(OCFTOQUICKDEBT).union(OCFTOSHORTDEBT))
-    defaults = (OCFTOQUICKDEBT).union(OCFTOSHORTDEBT)
+    defaults = (OCFTOINTEREST.union(OCFTOQUICKDEBT).union(OCFTOSHORTDEBT))
+#    defaults = (OCFTOQUICKDEBT).union(OCFTOSHORTDEBT)
     df_code = np.array(list(defaults))
     df = np.ones(len(df_code))
     samples = pd.DataFrame([df_code,df], ['code','df'])
@@ -60,11 +60,11 @@ def default_sample():
     print('真实违约与技术性违约的交集')
     print((samples.merge(real_df_manufacture,on='code')))
     real_df_manufacture.pop('COMP_NAME')
-    samples = samples.append(real_df_manufacture,ignore_index=True)
+#    samples = samples.append(real_df_manufacture,ignore_index=True)
     return samples[['code','df']],real_df_manufacture
 
 default,real_df_manu = default_sample()
-query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
+#query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':0,'LISTINGORNOT':0,'INDUSTRY_CSRC12':0,'INDUSTRY_CSRCCODE12':0,'NATURE':0,'rptDate':0,'PROVINCE':0})
 
 #rptDates={"$or":[{"rptDate" : "20151231"},{"rptDate" : "20161231"}]}
 rptDates={"$or":[{"rptDate" : "20161231"},{"rptDate" : "20151231"}]}
@@ -124,27 +124,11 @@ normal = report15s[report15s['df']==0.0]#.sample(len(default)*2)
 data = default.merge(normal, how='outer') # trainning samples
 
 # 归一化
-from cm_plot import * #导入自行编写的混淆矩阵可视化函数
-def comp_plot(n,predict_result):
-    cm_plot(train[:,n-1], predict_result).show() #显示混淆矩阵可视化结果
-
-def plot_roc(n,net, test):
-    from sklearn.metrics import roc_curve #导入ROC曲线函数
-    import matplotlib.pyplot as plt
-    predict_result = net.predict(test[:,:-1]).reshape(len(test))
-    fpr, tpr, thresholds = roc_curve(test[:,-1], predict_result, pos_label=1)
-    plt.plot(fpr, tpr, linewidth=2, label = 'ROC of LM') #作出ROC曲线
-    plt.xlabel('False Positive Rate') #坐标轴标签
-    plt.ylabel('True Positive Rate') #坐标轴标签
-    plt.ylim(0,1.05) #边界范围
-    plt.xlim(0,1.05) #边界范围
-    plt.legend(loc=4) #图例
-    plt.show() #显示作图结果
 
 #构建LM神经网络模型
 #def LM_NN(result):
 from keras.models import Sequential #导入神经网络初始化函数
-from keras.layers.core import Dense, Activation #导入神经网络层函数、激活函数
+from keras.layers.core import Dense, Activation, Dropout #导入神经网络层函数、激活函数
 #    dd = pd.DataFrame(Variance)
 dd = default.merge(normal, how='outer')
 dd=dd.sort_values(1,ascending=0)
@@ -158,26 +142,31 @@ print(sum(train[:,-1]),sum(test[:,-1]))
 netfile = './net2016.model' #构建的神经网络模型存储路径
 
 net = Sequential() #建立神经网络
-net.add(Dense(input_dim = n-1, output_dim = 50)) #添加输入层（3节点）到隐藏层（10节点）的连接
+net.add(Dense(input_dim = n-1, output_dim = 100)) #添加输入层（3节点）到隐藏层（10节点）的连接
 net.add(Activation('relu')) #隐藏层使用relu激活函数
-net.add(Dense(input_dim = 50, output_dim = 20)) #添加输入层（3节点）到隐藏层（10节点）的连接
+net.add(Dropout(0.5)) # over fitting
+net.add(Dense(input_dim = 100, output_dim = 20)) #添加输入层（3节点）到隐藏层（10节点）的连接
 net.add(Activation('relu')) #隐藏层使用relu激活函数
+net.add(Dropout(0.5)) # over fitting
 net.add(Dense(input_dim = 20, output_dim = 1)) #添加隐藏层（10节点）到输出层（1节点）的连接
 net.add(Activation('sigmoid')) #输出层使用sigmoid激活函数  softmax: posibility
 net.compile(loss = 'binary_crossentropy', optimizer = 'adam', class_mode = "binary") #编译模型，使用adam方法求解
 m,n = np.shape(train)
-net.fit(train[:,:n-1], train[:,n-1], nb_epoch=100, batch_size=1) #训练模型，循环1000次
-net.save_weights(netfile) #保存模型
-predict_result = net.predict_classes(train[:,:n-1]).reshape(len(train)) #预测结果变形
-comp_plot(n,predict_result)
-plot_roc(n,net,test)
+net.fit(train[:,:n-1], train[:,-1], nb_epoch=1000, batch_size=1) #训练模型，循环1000次
+#net.save_weights(netfile) #保存模型
+predict_result = net.predict_classes(test[:,:n-1]).reshape(len(test)) #预测结果变形
+import cm_plot  #导入自行编写的混淆矩阵可视化函数
+cm_plot.cm_plot(test[:,n-1], predict_result).show()
+import roc_plot
+roc_plot.roc_plot(n,net,test).show()
 
 predict_result16 = net.predict_classes(report16s.as_matrix()).reshape(len(report16s))
 d2016=pd.DataFrame([code16.values,predict_result16],['code','df']).T
-print(d2016[d2016['df']==1])
+#print(d2016[d2016['df']==1])
 query = db.default_ratios.find({'$and' :[{'INDUSTRY_CSRCCODE12':'C'},{"rptDate" : "20141231"}]},{'_id':0,'COMP_NAME':1,'code':1})
 manus = pd.DataFrame(list(query))
 manus = manus.merge(d2016,on='code')
+print(manus[manus['df']==1]['COMP_NAME'])
 manus.to_excel("manufacture2017.xlsx")
 '''这里要提醒的是，keras用predict给出预测概率，predict_classes才是给出预测类别，而且两者的预测结果都是n x 1维数组，而不是通常的 1 x n'''
 
