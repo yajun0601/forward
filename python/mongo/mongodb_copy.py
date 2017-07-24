@@ -11,8 +11,8 @@ from numpy  import *
 from pymongo import *
 import json
 
-client = MongoClient()
-client = MongoClient("mongodb://192.168.10.60:27017/")
+#client = MongoClient("mongodb://192.168.10.60:27017/")
+client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
 db = client.stocks
 #input_data = db.bond_profit
 #data = pd.DataFrame(list(input_data.find()))
@@ -42,6 +42,7 @@ dest_db.bond_cashflow.insert_many(db.bond_cashflow.find({"rptDate" : "20161231"}
 dest_db.bond_profit.insert_many(db.bond_profit.find({"rptDate" : "20161231"}))
 dest_db.bond_balance.insert_many(db.bondBalance.find({"rptDate" : "20161231"}))
 
+df = pd.DataFrame(list(db.bond_cashflow.find({"rptDate" : "20161231"})))
 query = db.bond_balance.find({"$or":[{"rptDate" : "20161231"},{"rptDate" : "20151231"}]},{'_id':0,'COMP_NAME':0,'CITY':0,'LISTINGORNOT':0,'PROVINCE':0})
 balance=pd.DataFrame(list(query))
 shape(balance)
