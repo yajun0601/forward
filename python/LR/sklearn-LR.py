@@ -41,7 +41,7 @@ seaborn的pairplot函数绘制X的每一维度和对应Y的散点图。通过设
 '''
 sns.pairplot(data, x_vars=['TV','Radio','Newspaper'], y_vars='Sales', size=7, aspect=0.8, kind='reg')
 
-
+sns.pairplot(data, x_vars=['TV','Radio'], y_vars='Newspaper', size=7, aspect=0.8, kind='reg')
 
 # create a python list of feature names
 feature_cols = ['TV', 'Radio', 'Newspaper']
@@ -78,7 +78,7 @@ zip(feature_cols, linreg.coef_)
 from sklearn import metrics
 import numpy as np
 y_pred = linreg.predict(X_test)
-print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+print('calculate RMSE using scikit-learn:',np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 '''
 (1)平均绝对误差(Mean Absolute Error, MAE)
 1n∑ni=1|yi−yi^|
@@ -110,14 +110,67 @@ print("RMSE:",np.sqrt(metrics.mean_squared_error(true, pred)))
 在之前展示的数据中，我们看到Newspaper和销量之间的线性关系比较弱，现在我们移除这个特征，看看线性回归预测的结果的RMSE如何？
 '''
 feature_cols = ['TV', 'Radio']
-
 X = data[feature_cols]
 y = data.Sales
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+linreg.fit(X_train, y_train)
+y_pred = linreg.predict(X_test)
+print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 
+
+DATA_FILE='SH_StockExchange.xlsx'
+df = pd.read_excel(DATA_FILE,sheetname=[1], header=None, skiprows=1, parse_cols=[2,3,4,6,14,17])[1]
+df = df.fillna(0)
+df[0] = df[0]/100000000
+zeros = df[df[0]==0]
+data = df.drop(zeros.index,axis=0)
+sns.pairplot(data, x_vars=[1,2,3,4,5], y_vars=0, size=7, aspect=0.8, kind='reg')
+sns.pairplot(data, vars=[0,1,2,3,4])
+
+# create a python list of feature names
+feature_cols = [1,2,3,4,5]
+
+# use the list to select a subset of the original DataFrame
+X = data[feature_cols]
+# equivalent command to do this in one line
+#X = data[[1,2,3,4]]
+# select a Series from the DataFrame
+y = data[0]
+
+
+from sklearn.cross_validation import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
+# default split is 75% for training and 25% for testing
+print(X_train.shape)
+print(y_train.shape)
+print(X_test.shape)
+print(y_test.shape)
+
+from sklearn.linear_model import LinearRegression
+linreg = LinearRegression()
 linreg.fit(X_train, y_train)
 
+print(linreg.intercept_, linreg.coef_)
+# pair the feature names with the coefficients
+print(feature_cols, linreg.coef_)
+zip(feature_cols, linreg.coef_)
 y_pred = linreg.predict(X_test)
 
-print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+print("MAE:",metrics.mean_absolute_error(y_test, y_pred))
+print("MSE:",metrics.mean_squared_error(y_test, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+from numpy import *
+yMat = mat(y)
+
+yCopy = yMat.copy()
+yCopy.sort(1)
+xCopy=matrix(range(yCopy.shape[1]))
+
+import matplotlib.pyplot as plt
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.scatter(xCopy,yCopy)
+#ax.plot(xCopy,yCopy)
+plt.show()
