@@ -61,7 +61,7 @@ def standard(x):
     return ret
 
 def transcoding(x):
-    l1 = list(df[10])
+    l1 = list(df[x.name])
     province = list(set(l1))
     n = len(province)
     mat = [[0 for j in range(n)] for i in range(n)]
@@ -75,7 +75,7 @@ def transcoding(x):
         ret.append(province_dict[key])
     return pd.DataFrame(ret),province_dict
     
-hot_coding,province_dict = transcoding(df[10])
+
 
 def loadDataSet(filename):
     df = pd.read_excel(filename,sheetname=[1], header=None, skiprows=1)[1]
@@ -94,14 +94,17 @@ def loadDataSet(filename):
     df[15] = standard(df[15].apply(map_rate)) #发行时主体评级
     df[16] = standard(df[16].apply(map_sub_rate)) #发行时主体评级展望
     df[17] = standard(df[17]) #存量债券余额
-
+    prov_coding,province_dict = transcoding(df[10]) # province
+    
+    enter_coding,enter_dict = transcoding(df[13]) # enterprise
     target = df[2]
     data = df[[3,4,6,9,11,14,15,16,17]]
+    data = pd.concat([data,prov_coding],axis=1)
+    data = pd.concat([data,enter_coding],axis=1)
     
     import seaborn as sns
-    sns.pairplot(df, x_vars=[3,4,6,9,11,14,15,16,17], y_vars=2, size=7, aspect=0.8, kind='reg')
+#    sns.pairplot(df, x_vars=[3,4,6,9,11,14,15,16,17], y_vars=2, size=7, aspect=0.8, kind='reg')
     return mat(data),mat(target).T
-
 
 
 def regression(filename):
@@ -125,7 +128,7 @@ def regression(filename):
     print("MSE:",metrics.mean_squared_error(y_test, y_pred))
     print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
     scores = cross_val_score(linreg, X, y,cv=5)
-#    print(filename)  
+#    print(filename)
     print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
     
     res = pd.DataFrame(linreg.coef_,columns=feature_cols,index=[filename])
@@ -136,6 +139,7 @@ files = ['债券成交量6月.xlsx']
 
 params = pd.DataFrame()
 for filename in files:
+    regression(filename)
     params = params.append(regression(filename))
 print(params.T)
 
