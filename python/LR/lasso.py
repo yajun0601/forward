@@ -6,6 +6,7 @@ Created on Thu Jul 20 16:25:35 2017
 @author: yajun
 """
 
+import pandas as pd
 import numpy as np
 from sklearn.datasets import load_boston
 from sklearn.linear_model import SGDRegressor
@@ -75,12 +76,15 @@ def transcoding(x):
         ret.append(province_dict[key])
     return pd.DataFrame(ret),province_dict
     
-hot_coding,province_dict = transcoding(df[10])
+#hot_coding,province_dict = transcoding(df[10])
 
 def loadDataSet(filename):
-    df = pd.read_excel(filename,sheetname=[1], header=None, skiprows=1)[1]
+    sheet = 0
+    df = pd.read_excel(filename,sheetname=[sheet], header=None, skiprows=1)[sheet]
+    df = df.dropna(how='any',thresh=df.shape[1]/2) # drop those rows 
     df = df.fillna(0)
     df[2] = df[2]/100000000  # 区间成交量
+    df = df.sort_values(2).reset_index()
 #    zeros = df[df[0]==0]
 #    df = df.drop(zeros.index,axis=0)
     df[2] = standard(df[2]) #区间成交量
@@ -91,7 +95,9 @@ def loadDataSet(filename):
     df[9] = df[9].apply(map_01)  # 是否含权债
     df[11] = df[11].apply(map_01) # 是否上市公司
     df[14] = standard(df[14]) #大股东持股比例
+    print( df.groupby(15).size())
     df[15] = standard(df[15].apply(map_rate)) #发行时主体评级
+    print( df.groupby(15).size())
     df[16] = standard(df[16].apply(map_sub_rate)) #发行时主体评级展望
     df[17] = standard(df[17]) #存量债券余额
 
@@ -99,8 +105,8 @@ def loadDataSet(filename):
     data = df[[3,4,6,9,11,14,15,16,17]]
     
     import seaborn as sns
-    sns.pairplot(df, x_vars=[3,4,6,9,11,14,15,16,17], y_vars=2, size=7, aspect=0.8, kind='reg')
-    return mat(data),mat(target).T
+    sns.pairplot(df, x_vars=[3,4,6,9,11,14,15,16,17], y_vars=2, size=5, aspect=0.8, kind='reg')
+    return np.mat(data),np.mat(target).T
 
 
 
@@ -131,8 +137,8 @@ def regression(filename):
     res = pd.DataFrame(linreg.coef_,columns=feature_cols,index=[filename])
     return (res)
 
+files = ['201603.xlsx','201604.xlsx','201605.xlsx','债券成交量3月.xlsx','债券成交量4月.xlsx','债券成交量5月.xlsx','债券成交量6月.xlsx']
 #files = ['债券成交量3月.xlsx','债券成交量4月.xlsx','债券成交量5月.xlsx','债券成交量6月.xlsx']
-files = ['债券成交量6月.xlsx']
 
 params = pd.DataFrame()
 for filename in files:
@@ -140,7 +146,6 @@ for filename in files:
 print(params.T)
 
     
-import pandas as pd
 
 df = pd.read_excel(DATA_FILE,sheetname=[1], header=None, skiprows=1)[1]
 df = df.fillna(0)
