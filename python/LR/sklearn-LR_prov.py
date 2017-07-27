@@ -61,7 +61,7 @@ def standard(x):
     return ret
 
 def transcoding(x):
-    l1 = list(df[x.name])
+    l1 = list(x)
     province = list(set(l1))
     n = len(province)
     mat = [[0 for j in range(n)] for i in range(n)]
