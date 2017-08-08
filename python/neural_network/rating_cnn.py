@@ -121,8 +121,4 @@ labels_array = numpy.array([0,1,2,3,4,5,6,7,8])
 labels = dense_to_one_hot(labels_array, 9)
 
 
-import random
-import time
-ts = random.random()*5
-time.sleep(ts)
 
