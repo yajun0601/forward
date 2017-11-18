@@ -12,7 +12,8 @@ from pymongo import MongoClient
 from bson.son import SON
 import my_db
 import time
-client = MongoClient("mongodb://192.168.10.60:27017/")
+#client = MongoClient("mongodb://192.168.10.60:27017/")
+client = MongoClient("mongodb://1t611714m7.iask.in:22839")
 db = client.qichacha_new
 
 #360 days before  till now
@@ -22,7 +23,7 @@ START_DATE = '2015-01-01'
 END_DATE = time.strftime('%Y-%m-%d',time.localtime(time.time()))
 
 
-def shixin_count(start_date=START_DATE,end_date=END_DATE):
+def shixin_count(start_date=START_DATE,end_date=END_DATE,name=None):
     #失信总次数
     '''    db.shixin.aggregate([
     { "$match":{"Publicdate":{"$gt":"2017-09-15"}}},
@@ -44,34 +45,54 @@ def shixin_count(start_date=START_DATE,end_date=END_DATE):
         record.columns = ['name', '失信']
     return record
 
-def zhixing_count(start_date=START_DATE,end_date=END_DATE):
+def zhixing_count(start_date=START_DATE,end_date=END_DATE,name=None):
     # 执行总次数
     collection = db.zhixing
     #db.collection.aggregate([$group:{_id:'$Name', num:{$sum:1}}])
-    pipeline = [
-    { "$match":{"Liandate":{"$gte":start_date}}},
-    { "$match":{"Liandate":{"$lt":end_date}}},
-    {"$group":{"_id":'$Name', "count":{"$sum":1}}},
-    {"$sort":{"count":-1}}
-    ]    
+    if name == None:
+        pipeline = [
+        { "$match":{"Liandate":{"$gte":start_date}}},
+        { "$match":{"Liandate":{"$lt":end_date}}},
+        {"$group":{"_id":'$Name', "count":{"$sum":1}}},
+        {"$sort":{"count":-1}}
+        ]  
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},
+        { "$match":{"Liandate":{"$gte":start_date}}},
+        { "$match":{"Liandate":{"$lt":end_date}}},
+        {"$group":{"_id":'$Name', "count":{"$sum":1}}},
+        {"$sort":{"count":-1}}
+        ] 
     code = collection.aggregate(pipeline)
     record = pd.DataFrame(list(code)) #Convert the input to an array.
     if len(record) != 0:
         record.columns = ['name', '执行']
     return record
 
-def defendant_count(start_date=START_DATE,end_date=END_DATE):
+def defendant_count(start_date=START_DATE,end_date=END_DATE,name=None):
     # 被告总次数
 #    db = client.companies
     collection = db.JudgmentDoc_isExactlySame_Clean
-    pipeline = [
-    { "$match":{"SubmitDate":{"$gte":start_date}}},
-    { "$match":{"SubmitDate":{"$lt":end_date}}},
-    { "$project": {"Defendantlist":1}},
-    { "$unwind": "$Defendantlist"},
-    { "$group": {"_id":"$Defendantlist", "cnt":{"$sum":1}}},
-    {"$sort": SON([("cnt", -1)])}
-    ]
+    if name == None:
+        pipeline = [
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1}},
+        { "$unwind": "$Defendantlist"},
+        { "$group": {"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1}},
+        { "$unwind": "$Defendantlist"},
+        { "$group": {"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]    
     ret = collection.aggregate(pipeline)
     record = pd.DataFrame(list(ret))
     if len(record) != 0:
@@ -80,19 +101,31 @@ def defendant_count(start_date=START_DATE,end_date=END_DATE):
     
     return record
 
-def appellor_count(start_date=START_DATE,end_date=END_DATE):
+def appellor_count(start_date=START_DATE,end_date=END_DATE,name=None):
     # 原告总次数
 #    db = client.companies
     collection = db.JudgmentDoc_isExactlySame_Clean
-    pipeline = [
-    { "$match":{"SubmitDate":{"$gte":start_date}}},
-    { "$match":{"SubmitDate":{"$lt":end_date}}},
-    { "$project": {"Prosecutorlist":1}},
-    { "$unwind": "$Prosecutorlist"},
-    { "$group": {"_id":"$Prosecutorlist", "cnt":{"$sum":1}}},
-#    {"$match":{'Prosecutorlist':'无锡产业发展集团有限公司'}},
-    {"$sort": SON([("cnt", -1)])}
-    ]
+    if name == None:
+        pipeline = [
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$group": {"_id":"$Prosecutorlist", "cnt":{"$sum":1}}},
+    #    {"$match":{'Prosecutorlist':'无锡产业发展集团有限公司'}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},       
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$group": {"_id":"$Prosecutorlist", "cnt":{"$sum":1}}},
+    #    {"$match":{'Prosecutorlist':'无锡产业发展集团有限公司'}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
     ret = collection.aggregate(pipeline)
     record = pd.DataFrame(list(ret))
     if len(record) != 0:
@@ -101,7 +134,7 @@ def appellor_count(start_date=START_DATE,end_date=END_DATE):
     
     return record
 
-def total_judgement_count(start_date=START_DATE,end_date=END_DATE):
+def total_judgement_count(start_date=START_DATE,end_date=END_DATE,name=None):
     
     defendant_df = defendant_count(start_date,end_date)
     appellor_df = appellor_count(start_date,end_date)
@@ -113,18 +146,31 @@ def total_judgement_count(start_date=START_DATE,end_date=END_DATE):
     total_df['诉讼']=total_df['被告'] + total_df['原告']
     return total_df
 
-def sued_by_bank(start_date=START_DATE,end_date=END_DATE):
+def sued_by_bank(start_date=START_DATE,end_date=END_DATE,name=None):
     collection = db.JudgmentDoc_isExactlySame_Clean
-    pipeline = [
-    { "$match":{"SubmitDate":{"$gte":start_date}}},
-    { "$match":{"SubmitDate":{"$lt":end_date}}},
-    { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
-    { "$unwind": "$Prosecutorlist"},
-    { "$unwind": "$Defendantlist"},
-    { "$match":{"Prosecutorlist":{"$regex":"银行"}}},
-    { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
-    {"$sort": SON([("cnt", -1)])}
-    ]
+    if name == None:
+        pipeline = [
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"Prosecutorlist":{"$regex":"银行"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"Prosecutorlist":{"$regex":"银行"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
     ret = collection.aggregate(pipeline)
     record = pd.DataFrame(list(ret))
     if len(record) != 0:
@@ -133,19 +179,32 @@ def sued_by_bank(start_date=START_DATE,end_date=END_DATE):
         record = pd.DataFrame(data=[['',0]],columns=['name', '银行'])
     return record
 
-def sued_by_small_loan_cmpny(start_date=START_DATE,end_date=END_DATE):
+def sued_by_small_loan_cmpny(start_date=START_DATE,end_date=END_DATE,name=None):
 #    db = client.companies
-    collection = db.JudgmentDoc_isExactlySame_Clean   
-    pipeline = [
-    { "$match":{"SubmitDate":{"$gte":start_date}}},
-    { "$match":{"SubmitDate":{"$lt":end_date}}},
-    { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
-    { "$unwind": "$Prosecutorlist"},
-    { "$unwind": "$Defendantlist"},
-    { "$match":{"Prosecutorlist":{"$regex":"贷款"}}},
-    { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
-    {"$sort": SON([("cnt", -1)])}
-    ]
+    collection = db.JudgmentDoc_isExactlySame_Clean  
+    if name == None:
+        pipeline = [
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"Prosecutorlist":{"$regex":"贷款"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},        
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"Prosecutorlist":1}},
+        { "$unwind": "$Prosecutorlist"},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"Prosecutorlist":{"$regex":"贷款"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
     ret = collection.aggregate(pipeline)
     record = pd.DataFrame(list(ret))
     if len(record) != 0:
@@ -154,18 +213,30 @@ def sued_by_small_loan_cmpny(start_date=START_DATE,end_date=END_DATE):
         record = pd.DataFrame(data=[['',0]],columns=['name', '小贷'])
     return record
 
-def sued_in_arrears(start_date=START_DATE,end_date=END_DATE):
+def sued_in_arrears(start_date=START_DATE,end_date=END_DATE,name=None):
 #    db = client.companies
-    collection = db.JudgmentDoc_isExactlySame_Clean   
-    pipeline = [
-    { "$match":{"SubmitDate":{"$gte":start_date}}},
-    { "$match":{"SubmitDate":{"$lt":end_date}}},
-    { "$project": {"Defendantlist":1,"CaseName":1}},
-    { "$unwind": "$Defendantlist"},
-    { "$match":{"CaseName":{"$regex":"欠款"}}},
-    { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
-    {"$sort": SON([("cnt", -1)])}
-    ]
+    collection = db.JudgmentDoc_isExactlySame_Clean
+    if name == None:
+        pipeline = [
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"CaseName":1}},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"CaseName":{"$regex":"欠款"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]        
+    else:
+        pipeline = [
+        { "$match":{"Name":name}},
+        { "$match":{"SubmitDate":{"$gte":start_date}}},
+        { "$match":{"SubmitDate":{"$lt":end_date}}},
+        { "$project": {"Defendantlist":1,"CaseName":1}},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"CaseName":{"$regex":"欠款"}}},
+        { "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}},
+        {"$sort": SON([("cnt", -1)])}
+        ]
     ret = collection.aggregate(pipeline)
     record = pd.DataFrame(list(ret))
     if len(record) != 0:
@@ -339,7 +410,31 @@ def export_pingan_trust16():
         
     writer.save()
 
-
+def gen_default_samples(start_date,end_date,name):
+    print(start_date,end_date,name)
+    total_judgement_df = total_judgement_count(start_date,end_date,name)
+    bank_df = sued_by_bank(start_date,end_date,name)
+    small_loan_df = sued_by_small_loan_cmpny(start_date,end_date,name)
+    in_arrears_df = sued_in_arrears(start_date,end_date,name)
+    shixin_df = shixin_count(start_date,end_date,name)
+    zhixing_df = zhixing_count(start_date,end_date,name)
+    
+    
+    #result = defendant_df.merge(appellor_df, on='_id', how='outer')
+    result = pd.DataFrame()
+    if len(shixin_df) > 0 and len(zhixing_df) > 0:
+        result = shixin_df.merge(zhixing_df, on='name', how='outer')
+        if len(result) > 0 and len(total_judgement_df) > 0:
+            result = result.merge(total_judgement_df, on='name', how='outer')
+            if len(bank_df) > 0:
+                result = result.merge(bank_df, on='name', how='outer')
+            if len(small_loan_df) > 0:
+                result = result.merge(small_loan_df, on='name', how='outer')
+            if len(in_arrears_df) > 0:
+                result = result.merge(in_arrears_df, on='name', how='outer')
+    result = result.fillna(0)
+    return result
+    
 def get_defaults():
     db_default = client.bonds
     pipeline=[{"$group" : {"_id" : "$发行人", "date" : {"$last":"$发生日期"}}}]
@@ -359,6 +454,11 @@ def get_defaults():
     
     
     all_ndf = get_total(start_date='2016-01-01',end_date='2016-12-31')
+    issuers_2016_ndf_ = issuers_2016_ndf.merge(all_ndf, on='name', how='left')
+    issuers_2016_ndf_ = issuers_2016_ndf_.fillna(0)
+    insert_record = json.loads(issuers_2016_ndf_.to_json(orient='records'))
+    collection = db.samples2016
+    collection.insert_many(insert_record)    
     
     
     length = len(issuers_2016)
@@ -392,6 +492,7 @@ if __name__ == "__main__":
 #    export_pingan_trust16()
 #    sued_between_holder()
 #    time_searies_all()
+    ret = zhixing_count('2015-02-20','2016-12-20',"银基烯碳新材料股份有限公司")
 
     
     

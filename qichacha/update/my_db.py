@@ -10,7 +10,8 @@ from pymongo import MongoClient
 import pandas as pd
 
 def getCompanyList():
-    client = MongoClient("mongodb://localhost:27017/")
+#    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient("mongodb://1t611714m7.iask.in:22839")
     db_comp = client.company_data
     collection = db_comp.distinct_company_list
     query = collection.find({},{"_id":0,"CODE":0})
