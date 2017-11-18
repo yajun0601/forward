@@ -138,8 +138,8 @@ def feed_dict(train):
 
 saver = tf.train.Saver()
 
-for i in range(4000):
-    if i%50 ==0:
+for i in range(44000):
+    if i%150 ==0:
         summary, acc = sess.run([merged, accuracy], feed_dict=feed_dict(False))
         test_writer.add_summary(summary, i)
         print('Accuracy at step %s: %s' % (i, acc))
