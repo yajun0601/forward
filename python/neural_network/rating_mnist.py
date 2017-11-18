@@ -10,7 +10,7 @@ Created on Thu Aug 10 18:08:31 2017
 import tensorflow as tf
 from tensorflow.contrib.learn.python.learn.datasets.financial_report import read_data_sets
 
-mnist = read_data_sets('MNIST_data', one_hot=True)
+mnist = read_data_sets('mnist/MNIST_data', one_hot=True)
 
 #mnist = read_data_sets('MNIST_data', one_hot=True) #下载并加载mnist数据
 

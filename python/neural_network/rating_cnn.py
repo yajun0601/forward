@@ -54,7 +54,9 @@ def get_rating():
     for r in rating_map.index:
         print(r)
         ret_rating['LATESTISSURERCREDITRATING2'] = ret_rating['LATESTISSURERCREDITRATING2'].replace(r,rating_map.T[r])
-
+        
+    return ret_rating
+ratings = get_rating()
 '''
 AAA     0
 AA      1
@@ -97,28 +99,63 @@ def get_report():
     query = db.bond_cashflow.find(rptDates,{'_id':0,'COMP_NAME':0,'CITY':0,'LISTINGORNOT':0,'PROVINCE':0})
     cashflow = pd.DataFrame(list(query)) #Convert the input to an array.
     
-    query = db.bond_profit.find(rptDates,{'_id':0,'COMP_NAME':0,'CITY':0,'LISTINGORNOT':0,'PROVINCE':0})
+    query = db.bond_profit.find(rptDates,{'_id':0,'COMP_NAME':0,'CITY':0,'PROVINCE':0}) #'LISTINGORNOT':0,
     profit = pd.DataFrame(list(query)) #Convert the input to an array.
     
+    profit['LISTINGORNOT'] = profit['LISTINGORNOT'].replace('否',0)
+    profit['LISTINGORNOT'] = profit['LISTINGORNOT'].replace('是',1)
+    profit['LISTINGORNOT'] = profit['LISTINGORNOT'].fillna(0)
     tmp = balance.merge(cashflow, on=['code','rptDate'])
     financial_report = tmp.merge(profit, on=['code','rptDate'])  # finacial report of 2015
                             
     private_report = financial_report.merge(get_issuer(), on='code')
-    
-    report = private_report.dropna(axis = 1, how='any', thresh=int(len(private_report)*0.25))                   
+    print(private_report.shape) # (10084, 415)  21*21= 441   
+
+#    report = private_report.dropna(axis = 1, how='any', thresh=int(len(private_report)*0.25)) 
+    report = private_report
     report = report.fillna(report.mean())
+    report = report.fillna(0)
     
     report2015 = report[report['rptDate'] == '20151231']
-    report2015 = report2015.drop(['rptDate','COMP_NAME'], axis=1)
+    report2015 = report2015.drop(['rptDate','COMP_NAME','code'], axis=1)
     report2016 = report[report['rptDate'] == '20161231']
-    report2016 = report2016.drop(['rptDate','COMP_NAME'], axis=1)
+    report2016 = report2016.drop(['rptDate','COMP_NAME','code'], axis=1)
     
     client.close()
     return report2015,report2016
 
-report2015,report2016 = get_report()
+report2015,report2016 = get_report() # 412
+report2015['i0'] = 0
+report2015['i1'] = 0
+r0 = report2015.iloc[0:5]
+
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
+scaler = preprocessing.StandardScaler().fit(r0)
+
+min_max_scaler = preprocessing.MinMaxScaler()
+X_train_minmax = min_max_scaler.fit_transform(r0)
+                                             
+for img in X_train_minmax:
+    img0 = img.reshape(18,23)
+    fig = plt.figure()  
+    # 第一个子图,按照默认配置  
+    ax = fig.add_subplot(221)  
+    ax.imshow(img0)
+
+
 labels_array = numpy.array([0,1,2,3,4,5,6,7,8])
 labels = dense_to_one_hot(labels_array, 9)
 
+def map_rate(x):
+#    rates=['AAA','AA+','AA','AA-','A+','A','A-','BBB+','BBB','BBB-','BB+','BB','BB-','B+','B','B-','CCC+','CCC','CCC-','CC+','CC','CC-','DDD']
+    rates=['AAA','AA+','AA','AA-','A+']
+
+    ret = 0
+    for i in rates:
+        if x == i:
+            ret = len(rates) - rates.index(i)
+    return ret
 
 
+ 

@@ -9,15 +9,15 @@ Created on Thu Apr  6 11:52:24 2017
 from WindPy import *
 import pandas as pd
 from numpy  import *
-from pymongo import *
+from pymongo import MongoClient
 import json
 from bson.son import SON
 w.start()
 
 
-rptDate_list = ['20131231','20141231','20151231']
+rptDate_list = ['20131231','20141231','20151231','20161231']
 
-client = MongoClient()
+
 client = MongoClient("mongodb://192.168.10.60:27017/")
 db = client.bonds
 

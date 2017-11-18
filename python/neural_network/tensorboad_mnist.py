@@ -9,7 +9,7 @@ Created on Mon Aug 14 11:18:14 2017
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 
-MAX_STEPS = 1000
+MAX_STEPS = 50000
 LEARNING_RATE = 0.001
 DROPOUT = 0.9
 DATA_DIR = 'mnist/MNIST_data'
