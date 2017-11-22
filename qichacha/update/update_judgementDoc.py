@@ -255,16 +255,22 @@ def send_mail(attach):
         print("报告发送成功")
     else:
         print("报告发送失败")
+def get_missed_comp_list():
+    filename = "default_company_lose.xlsx"
+    df = pd.read_excel(filename)
+    return df      
 
 if __name__ == "__main__":
     remove_data()
     company_df = getCompanyList()
+#    company_df = get_missed_comp_list()
     l,w = company_df.shape
-    for i in range(7000,l):
+    for i in range(l):
         name = company_df.values[i][0]
         print("%d/%d\t%s"%(i+1,l,name))
         ret = update_JudgementDoc(name)
         if ret in err_code:
+            print(ret)
             break     
         
     if check_update():

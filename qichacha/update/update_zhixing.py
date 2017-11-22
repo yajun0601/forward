@@ -188,9 +188,15 @@ def send_mail(attach):
     else:
         print("报告发送失败")
 
+def get_missed_comp_list():
+    filename = "default_company_lose.xlsx"
+    df = pd.read_excel(filename)
+    return df
+    
 if __name__ == "__main__":
     remove_data()
     company_df = getCompanyList()
+#    company_df = get_missed_comp_list()
     l,w = company_df.shape
     for i in range(l):
         name = company_df.values[i][0]
