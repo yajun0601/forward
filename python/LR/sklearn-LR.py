@@ -15,7 +15,7 @@ data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_c
 data.head()
 '''
 特征：
-      TV  Radio  Newspaper  Sales
+      TV  radio  newspaper  sales
 1  230.1   37.8       69.2   22.1
 2   44.5   39.3       45.1   10.4
 3   17.2   45.9       69.3    9.3
@@ -23,39 +23,39 @@ data.head()
 5  180.8   10.8       58.4   12.9
 
 TV：对于一个给定市场中单一产品，用于电视上的广告费用（以千为单位）
-Radio：在广播媒体上投资的广告费用
-Newspaper：用于报纸媒体的广告费用
+radio：在广播媒体上投资的广告费用
+newspaper：用于报纸媒体的广告费用
 响应：
-Sales：对应产品的销量
+sales：对应产品的销量
 '''
 
 import seaborn as sns
 
 #%matplotlib inline
 # visualize the relationship between the features and the response using scatterplots
-sns.pairplot(data, x_vars=['TV','Radio','Newspaper'], y_vars='Sales', size=7, aspect=0.8)
+sns.pairplot(data, x_vars=['TV','radio','newspaper'], y_vars='sales', size=7, aspect=0.8)
 '''
 seaborn的pairplot函数绘制X的每一维度和对应Y的散点图。通过设置size和aspect参数来调节显示的大小和比例。
-可以从图中看出，TV特征和销量是有比较强的线性关系的，而Radio和Sales线性关系弱一些，Newspaper和Sales线性关系更弱。
+可以从图中看出，TV特征和销量是有比较强的线性关系的，而radio和sales线性关系弱一些，newspaper和sales线性关系更弱。
 通过加入一个参数kind='reg'，seaborn可以添加一条最佳拟合直线和95%的置信带。
 '''
-sns.pairplot(data, x_vars=['TV','Radio','Newspaper'], y_vars='Sales', size=7, aspect=0.8, kind='reg')
+sns.pairplot(data, x_vars=['TV','radio','newspaper'], y_vars='sales', size=7, aspect=0.8, kind='reg')
 
-sns.pairplot(data, x_vars=['TV','Radio'], y_vars='Newspaper', size=7, aspect=0.8, kind='reg')
+sns.pairplot(data, x_vars=['TV','radio'], y_vars='newspaper', size=7, aspect=0.8, kind='reg')
 
 # create a python list of feature names
-feature_cols = ['TV', 'Radio', 'Newspaper']
+feature_cols = ['TV', 'radio', 'newspaper']
 
 # use the list to select a subset of the original DataFrame
 X = data[feature_cols]
 
 # equivalent command to do this in one line
-X = data[['TV', 'Radio', 'Newspaper']]
+X = data[['TV', 'radio', 'newspaper']]
 # select a Series from the DataFrame
-y = data['Sales']
+y = data['sales']
 
 # equivalent command that works if there are no spaces in the column name
-y = data.Sales
+y = data.sales
 
 from sklearn.cross_validation import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
@@ -107,11 +107,11 @@ print("RMSE:",np.sqrt(metrics.mean_squared_error(true, pred)))
 
 '''
 特征选择
-在之前展示的数据中，我们看到Newspaper和销量之间的线性关系比较弱，现在我们移除这个特征，看看线性回归预测的结果的RMSE如何？
+在之前展示的数据中，我们看到newspaper和销量之间的线性关系比较弱，现在我们移除这个特征，看看线性回归预测的结果的RMSE如何？
 '''
-feature_cols = ['TV', 'Radio']
+feature_cols = ['TV', 'radio']
 X = data[feature_cols]
-y = data.Sales
+y = data.sales
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
 linreg.fit(X_train, y_train)
 y_pred = linreg.predict(X_test)

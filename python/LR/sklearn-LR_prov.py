@@ -186,11 +186,3 @@ y = diabetes.target[:150]
 lasso = linear_model.Lasso()
 print(cross_val_score(lasso, X, y))  
 
-
-
-
-
-
-
-
-

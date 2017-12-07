@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jul 19 17:47:42 2017
+
+@author: yajun
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn import metrics
+def test():
+    # read csv file directly from a URL and save the results
+    data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_col=0)
+    
+    # display the first 5 rows
+    data.head()
+    '''
+    特征：
+          TV  radio  newspaper  sales
+    1  230.1   37.8       69.2   22.1
+    2   44.5   39.3       45.1   10.4
+    3   17.2   45.9       69.3    9.3
+    4  151.5   41.3       58.5   18.5
+    5  180.8   10.8       58.4   12.9
+    
+    TV：对于一个给定市场中单一产品，用于电视上的广告费用（以千为单位）
+    radio：在广播媒体上投资的广告费用
+    newspaper：用于报纸媒体的广告费用
+    响应：
+    sales：对应产品的销量
+    '''
+    
+    import seaborn as sns
+    
+    #%matplotlib inline
+    # visualize the relationship between the features and the response using scatterplots
+    sns.pairplot(data, x_vars=['TV','radio','newspaper'], y_vars='sales', size=7, aspect=0.8)
+    '''
+    seaborn的pairplot函数绘制X的每一维度和对应Y的散点图。通过设置size和aspect参数来调节显示的大小和比例。
+    可以从图中看出，TV特征和销量是有比较强的线性关系的，而radio和sales线性关系弱一些，newspaper和sales线性关系更弱。
+    通过加入一个参数kind='reg'，seaborn可以添加一条最佳拟合直线和95%的置信带。
+    '''
+    sns.pairplot(data, x_vars=['TV','radio','newspaper'], y_vars='sales', size=7, aspect=0.8, kind='reg')
+    
+    sns.pairplot(data, x_vars=['TV','radio'], y_vars='newspaper', size=7, aspect=0.8, kind='reg')
+    
+    # create a python list of feature names
+    feature_cols = ['TV', 'radio', 'newspaper']
+    
+    # use the list to select a subset of the original DataFrame
+    X = data[feature_cols]
+    
+    # equivalent command to do this in one line
+    X = data[['TV', 'radio', 'newspaper']]
+    # select a Series from the DataFrame
+    y = data['sales']
+    
+    # equivalent command that works if there are no spaces in the column name
+    y = data.sales
+    
+    from sklearn.cross_validation import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+    
+    # default split is 75% for training and 25% for testing
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_test.shape)
+    print(y_test.shape)
+    
+    from sklearn.linear_model import LinearRegression
+    linreg = LinearRegression()
+    linreg.fit(X_train, y_train)
+    
+    print(linreg.intercept_, linreg.coef_)
+    # pair the feature names with the coefficients
+    print(feature_cols, linreg.coef_)
+    zip(feature_cols, linreg.coef_)
+    
+
+    y_pred = linreg.predict(X_test)
+    print('calculate RMSE using scikit-learn:',np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+    '''
+    (1)平均绝对误差(Mean Absolute Error, MAE)
+    1n∑ni=1|yi−yi^|
+    (2)均方误差(Mean Squared Error, MSE)
+    1n∑ni=1(yi−yi^)2
+    (3)均方根误差(Root Mean Squared Error, RMSE)
+    1n∑ni=√1(yi−yi^)2−−−−−−−−−−−−−
+    '''
+    # define true and predicted response values
+    true = [100, 50, 30, 20]
+    pred = [90, 50, 50, 30]
+    
+    
+    # calculate MAE by hand
+    print("MAE by hand:",(10 + 0 + 20 + 10)/4.)
+    # calculate MAE using scikit-learn
+    print("MAE:",metrics.mean_absolute_error(true, pred))
+    # calculate MSE by hand
+    print("MSE by hand:",(10**2 + 0**2 + 20**2 + 10**2)/4.)
+    # calculate MSE using scikit-learn
+    print("MSE:",metrics.mean_squared_error(true, pred))
+    # calculate RMSE by hand
+    print("RMSE by hand:",np.sqrt((10**2 + 0**2 + 20**2 + 10**2)/4.))
+    # calculate RMSE using scikit-learn
+    print("RMSE:",np.sqrt(metrics.mean_squared_error(true, pred)))
+    
+    '''
+    特征选择
+    在之前展示的数据中，我们看到newspaper和销量之间的线性关系比较弱，现在我们移除这个特征，看看线性回归预测的结果的RMSE如何？
+    '''
+    feature_cols = ['TV', 'radio']
+    X = data[feature_cols]
+    y = data.sales
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+    linreg.fit(X_train, y_train)
+    y_pred = linreg.predict(X_test)
+    print(np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+
+# ============== YTM sklearn LR modle
+def get_sample():
+    from pymongo import MongoClient
+    client = MongoClient("mongodb://127.0.0.1:27017/")
+    #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
+    db = client.bonds
+    
+    query = db.ytm_std_samples.find({},{'_id':0,'name':0})
+    record = pd.DataFrame(list(query))
+    record = record[['defendant','shixin', 'zhixing','std', 'df']]
+    sample = record.copy()
+    sample_df=sample[sample['df']==1]
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+
+    client.close()
+    return sample
+
+from sklearn.preprocessing import StandardScaler
+from pymongo import MongoClient
+def get_sample_standard():
+    client = MongoClient("mongodb://127.0.0.1:27017/")
+    #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
+    db = client.bonds
+    
+    query = db.ytm_std_samples.find({},{'_id':0,'name':0})
+    record = pd.DataFrame(list(query))
+    client.close()
+    
+    record = record[['defendant','shixin', 'zhixing','std', 'df']]
+    sample = record.copy()
+    sample_df=sample[sample['df']==1]
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+#    sample = sample.append(sample_df)
+#    sample = sample.append(sample_df)
+    sample.reset_index(inplace=True, drop=True)
+    df = sample.pop('df')
+    
+
+
+    standard =  StandardScaler().fit_transform(sample.values)
+    record_sd = pd.DataFrame(standard)
+    record_sd['df'] = df
+    return record_sd
+
+
+
+
+#data = get_sample()
+data = get_sample_standard()
+data.columns=[0,1,2,3,'df']
+#sns.pairplot(record_sd, x_vars=[0,1,2,3], y_vars='df', size=7, aspect=0.8, kind='reg')
+#sns.pairplot(record_sd, vars=[0,1,2,3,'df'])
+
+# create a python list of feature names
+feature_cols = [0,1,2,3]
+
+# use the list to select a subset of the original DataFrame
+X = data[feature_cols]
+# equivalent command to do this in one line
+#X = data[[1,2,3,4]]
+# select a Series from the DataFrame
+y = data['df']
+
+
+from sklearn.cross_validation import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=1)
+
+# default split is 75% for training and 25% for testing
+print(X_train.shape)
+print(y_train.shape)
+print(X_test.shape)
+print(y_test.shape)
+
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model.logistic import LogisticRegression
+#linreg = LinearRegression()
+linreg = LogisticRegression()
+linreg.fit(X_train, y_train)
+
+print(linreg.intercept_, linreg.coef_)
+# pair the feature names with the coefficients
+print(feature_cols, linreg.coef_)
+zip(feature_cols, linreg.coef_)
+y_pred = linreg.predict(X_test)
+print("MAE:",metrics.mean_absolute_error(y_test, y_pred))
+print("MSE:",metrics.mean_squared_error(y_test, y_pred))
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+#y_test = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+#y_pred = [0, 1, 0, 0, 0, 0, 0, 1, 1, 1]
+
+y_pred = linreg.predict(X_test)
+confusion_matrix=confusion_matrix(y_test,y_pred)
+print(confusion_matrix)
+plt.matshow(confusion_matrix)
+plt.title('confusion_matrix')
+plt.colorbar()
+plt.ylabel('real type')
+plt.xlabel('predicted type')
+plt.show()
+
+def roc_plot(modle, test, target):
+    from sklearn.metrics import roc_curve, roc_auc_score #导入ROC曲线函数
+    import matplotlib.pyplot as plt
+    predict_result = modle.predict(test).reshape(len(test))
+    fpr, tpr, thresholds = roc_curve(target, predict_result, pos_label=1)
+    auc = roc_auc_score(target, predict_result, average="macro", sample_weight=None)
+    plt.plot(fpr, tpr, linewidth=2, label = "AUC=%f"%(auc)) #作出ROC曲线
+    plt.xlabel('False Positive Rate') #坐标轴标签
+    plt.ylabel('True Positive Rate') #坐标轴标签
+    plt.ylim(0,1.05) #边界范围
+    plt.xlim(0,1.05) #边界范围
+    plt.legend(loc=4) #图例
+    return plt #显示作图结果
+    
+#roc_plot(n,net,X_test, y_test).show()
+roc_plot(linreg,X_test, y_test).show()
+
+
+def predict_result(modle):
+    client = MongoClient("mongodb://127.0.0.1:27017/")
+    #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
+    db = client.bonds
+    
+    query = db.ytm_std_samples_2018.find({},{'_id':0})
+    record = pd.DataFrame(list(query))
+    
+    query = db.maturitydate2018_private_enterprise_bonds.find({},{'_id':0,'ISSUER':1})
+    private_bond = pd.DataFrame(list(query))
+    private_bond.columns=['name']
+    
+    sample = record.merge(private_bond,on='name',how='inner')
+    client.close()
+    
+    name = sample.pop('name')
+    sample = sample[['defendant','shixin', 'zhixing','std']]
+    standard =  StandardScaler().fit_transform(sample.values)
+    record_sd = pd.DataFrame(standard)
+    values = np.mat(record_sd)*np.mat(linreg.coef_.T)
+    
+    
+                   
+    
+    pred = modle.predict(record_sd)
+    vv = np.asarray(values.T)
+    result = pd.DataFrame(data=[name.values,vv[0],pred]).T
+    result.drop_duplicates(inplace=True)
+    result.columns = ['name','values','df']    
+    
+    result.sort_values(by='values',inplace=True)
+    result.to_excel("predict_2018_default_privatebond.xlsx")
+    print(result[result['df']==1])
+    
+    result_df = result[result['df']==1]
+
+                   
+                   
+                   
+    out = result_df.merge(record, on = 'name')
+    
+    
+    
+predict_result(linreg)    
+
+    
+    
+    
+    
+    
+    
+
