@@ -11,9 +11,8 @@ Created on Mon Apr 24 15:50:24 2017
 import pandas as pd
 import numpy as np
 import json
+from pymongo import MongoClient
 
-
-client = MongoClient()
 client = MongoClient("mongodb://192.168.10.60:27017/")
 
 db = client.bonds

@@ -72,7 +72,7 @@ client = MongoClient("mongodb://127.0.0.1:27017/")
 #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
 db = client.bonds
 
-query = db.ytm_std_samples.find({},{'_id':0})
+query = db.ytmb_std_samples.find({},{'_id':0})
 record = pd.DataFrame(list(query))
 client.close()
     

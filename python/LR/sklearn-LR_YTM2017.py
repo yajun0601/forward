@@ -9,6 +9,8 @@ Created on Wed Jul 19 17:47:42 2017
 import pandas as pd
 import numpy as np
 from sklearn import metrics
+from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing.data import QuantileTransformer
 def test():
     # read csv file directly from a URL and save the results
     data = pd.read_csv('http://www-bcf.usc.edu/~gareth/ISL/Advertising.csv', index_col=0)
@@ -148,7 +150,7 @@ def get_sample_standard():
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
     db = client.bonds
     
-    query = db.ytm_std_samples.find({},{'_id':0,'name':0})
+    query = db.ytm_std_samples.find({},{'_id':0})
     record = pd.DataFrame(list(query))
     client.close()
     
@@ -163,15 +165,62 @@ def get_sample_standard():
 #    sample = sample.append(sample_df)
     sample.reset_index(inplace=True, drop=True)
     df = sample.pop('df')
-    
-
-
-    standard =  StandardScaler().fit_transform(sample.values)
+#    standard =  StandardScaler().fit_transform(sample.values)
+#    'Data after quantile transformation (gaussian pdf)',
+    standard = QuantileTransformer(output_distribution='normal').fit_transform(sample.values)
     record_sd = pd.DataFrame(standard)
     record_sd['df'] = df
     return record_sd
 
+def get_stmt_footnotes():
+    client = MongoClient("mongodb://127.0.0.1:27017/")
+    #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
+    db = client.bonds
+    
+    query = db.default_bond_footnotes.find({},{'_id':0,'name':0})
+    record_default = pd.DataFrame(list(query))
+#    record_default.dropna(axis=0,how='any',thresh=4,inplace=True)
+    record_default.fillna(0,inplace=True)
+    record = record_default[['STMNOTE_AR_1', 'STMNOTE_AR_2', 'STMNOTE_EOITEMS_24',
+       'STMNOTE_LTBORROW_4505', 'STMNOTE_OTHERS_4504', 'STMNOTE_OTHERS_7636',
+       'STMNOTE_OTHERS_7637', 'STMNOTE_OTHERS_7639', 'STMNOTE_STBORROW_4505',
+       'TOT_CUR_LIAB', 'TOT_LIAB']]
+    l,w = record_default.shape
+    delta = pd.DataFrame()
+    for x in range(int(l/2)):
+#        print(record.iloc[x+1]-record.iloc[x]/(record.iloc[x]+0.0001))
+        delta_rate = (record.iloc[2*x]-record.iloc[2*x+1])/(record.iloc[2*x+1])
+        delta_rate['issuer'] = record_default.iloc[2*x]['issuer']
+        delta = delta.append(delta_rate,ignore_index=True)
+        
+    delta.dropna(axis=0,how='any',thresh=4,inplace=True)
+    
+    
+    
+    query = db.matured_bond_footnotes.find({},{'_id':0,'name':0})
+    record_matured = pd.DataFrame(list(query))
+    #删除已到期但是发生违约的债券发行主体
+    record_matured =  record_matured[~record_matured['issuer'].isin(record_default['issuer'])]    
+    
 
+#    record_matured.dropna(axis=0,how='any',thresh=4,inplace=True)    
+    record = record_matured[['STMNOTE_AR_1', 'STMNOTE_AR_2', 'STMNOTE_EOITEMS_24',
+   'STMNOTE_LTBORROW_4505', 'STMNOTE_OTHERS_4504', 'STMNOTE_OTHERS_7636',
+   'STMNOTE_OTHERS_7637', 'STMNOTE_OTHERS_7639', 'STMNOTE_STBORROW_4505',
+   'TOT_CUR_LIAB', 'TOT_LIAB']]
+    l,w = record_matured.shape
+    delta_matured = pd.DataFrame()
+    for x in range(int(l/2)):
+#        print(record.iloc[x+1]-record.iloc[x]/(record.iloc[x]+0.0001))
+        delta_rate = (record.iloc[2*x]-record.iloc[2*x+1])/(record.iloc[2*x+1])
+        delta_rate['issuer'] = record_matured.iloc[2*x]['issuer']
+        delta_matured = delta_matured.append(delta_rate,ignore_index=True)
+        
+    delta_matured.dropna(axis=0,how='any',thresh=4,inplace=True)
+    
+    client.close()
+    
+    
 
 
 #data = get_sample()
@@ -265,7 +314,8 @@ def predict_result(modle):
     
     name = sample.pop('name')
     sample = sample[['defendant','shixin', 'zhixing','std']]
-    standard =  StandardScaler().fit_transform(sample.values)
+#    standard =  StandardScaler().fit_transform(sample.values)
+    standard = QuantileTransformer(output_distribution='normal').fit_transform(sample.values)
     record_sd = pd.DataFrame(standard)
     values = np.mat(record_sd)*np.mat(linreg.coef_.T)
     
@@ -280,6 +330,9 @@ def predict_result(modle):
     
     result.sort_values(by='values',inplace=True)
     result.to_excel("predict_2018_default_privatebond.xlsx")
+    
+    
+    
     print(result[result['df']==1])
     
     result_df = result[result['df']==1]
