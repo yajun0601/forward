@@ -13,16 +13,16 @@ from sklearn.preprocessing import Normalizer
 from sklearn.preprocessing.data import QuantileTransformer
 from sklearn.preprocessing import StandardScaler
 from pymongo import MongoClient
+import json
 # ============== YTM sklearn LR modle
 def get_sample():
-    from pymongo import MongoClient
     client = MongoClient("mongodb://127.0.0.1:27017/")
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
     db = client.bonds
     
-    query = db.ytmb_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0,'name':0})
+    query = db.yeild_csi_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0}) #,'name':1
     record = pd.DataFrame(list(query))
-    record = record[['defendant','shixin', 'zhixing','std', 'df']]
+    record = record[['defendant','shixin', 'zhixing','std', 'national','df']]
     sample = record.copy()
     sample_df=sample[sample['df']==1]
     sample = sample.append(sample_df)
@@ -35,25 +35,51 @@ def get_sample():
     client.close()
     return sample
 
+def set_national_ornot():
+    client = MongoClient("mongodb://127.0.0.1:27017/")
+    db_comp = client.company_data
+    query = db_comp.all_ratio_data.find({"NATURE":{"$regex":"国有企业"}},{"_id":0,"COMP_NAME":1})
+    national_df = pd.DataFrame(list(query))
+    national_df.drop_duplicates(inplace=True)
+    national_df.columns=['name']
+    national_df['national'] = 1
 
+    db_bond = client.bonds
+    query = db_bond.ytmb_std_samples.find({},{'_id':0})
+    samples = pd.DataFrame(list(query))
+    
+    nation_sample=samples.merge(national_df,on='name',how='left')
+    nation_sample['national'] = nation_sample['national'].fillna(0)
+    
+    # fill na with mean
+#    nation_sample[['defendant', 'shixin', 'std', 'zhixing']] = nation_sample[['defendant', 'shixin', 'std', 'zhixing']].fillna(nation_sample.mean())
+    # fill na with 0
+    nation_sample[['defendant', 'shixin', 'std', 'zhixing']] = nation_sample[['defendant', 'shixin', 'std', 'zhixing']].fillna(0)
+
+    insert_record = json.loads(nation_sample.to_json(orient='records'))
+    ret = db_bond.ytmb_std_nantional_samples.insert_many(insert_record)
+    return nation_sample
+    
+    
+    
 def get_sample_standard():
     client = MongoClient("mongodb://127.0.0.1:27017/")
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
     db = client.bonds
     
-    query = db.ytmb_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
+    query = db.yeild_csi_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
     record = pd.DataFrame(list(query))
     client.close()
     
-    record = record[['defendant','shixin', 'zhixing','std', 'df']]
+    record = record[['defendant','shixin', 'zhixing','std', 'national','df']]
     sample = record.copy()
     sample_df=sample[sample['df']==1]
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
-#    sample = sample.append(sample_df)
-#    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
     sample.reset_index(inplace=True, drop=True)
     df = sample.pop('df')
     standard =  StandardScaler().fit_transform(sample.values)
@@ -68,19 +94,20 @@ def get_sample_Quantile():
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
     db = client.bonds
     
-    query = db.ytmb_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
+    query = db.yeild_csi_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
     record = pd.DataFrame(list(query))
     client.close()
     
-    record = record[['defendant','shixin', 'zhixing','std', 'df']]
+    record = record[['defendant','shixin', 'zhixing','std','national', 'df']]
+    record.fillna(0,inplace=True)
     sample = record.copy()
     sample_df=sample[sample['df']==1]
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
-#    sample = sample.append(sample_df)
-#    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
+    sample = sample.append(sample_df)
     sample.reset_index(inplace=True, drop=True)
     df = sample.pop('df')
 #    'Data after quantile transformation (gaussian pdf)',
@@ -141,13 +168,14 @@ def get_stmt_footnotes():
 
 
 #data = get_sample()
-data = get_sample_standard()
-data.columns=[0,1,2,3,'df']
+#data = get_sample_standard()
+data = get_sample_Quantile()
+data.columns=[0,1,2,3,4,'df']
 #sns.pairplot(record_sd, x_vars=[0,1,2,3], y_vars='df', size=7, aspect=0.8, kind='reg')
 #sns.pairplot(record_sd, vars=[0,1,2,3,'df'])
 
 # create a python list of feature names
-feature_cols = [0,1,2,3]
+feature_cols = [0,1,2,3,4]
 
 # use the list to select a subset of the original DataFrame
 X = data[feature_cols]
@@ -219,7 +247,7 @@ def predict_result(modle):
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
     db = client.bonds
     
-    query = db.ytmb_std_samples.find({"$nor":[{'df':1},{'df':0}]},{'_id':0})
+    query = db.yeild_csi_std_samples.find({"$nor":[{'df':1},{'df':0}]},{'_id':0})
     record = pd.DataFrame(list(query))
     
     query = db.maturitydate2018_private_enterprise_bonds.find({},{'_id':0,'ISSUER':1})
@@ -230,7 +258,7 @@ def predict_result(modle):
     client.close()
     
     name = sample.pop('name')
-    sample = sample[['defendant','shixin', 'zhixing','std']]
+    sample = sample[['defendant','shixin', 'zhixing','std','national']]
 #    standard =  StandardScaler().fit_transform(sample.values)
     standard = QuantileTransformer(output_distribution='normal').fit_transform(sample.values)
     record_sd = pd.DataFrame(standard)
@@ -243,12 +271,12 @@ def predict_result(modle):
     result.columns = ['name','values','df']    
     
     result.sort_values(by='values',inplace=True)
-#    result.to_excel("predict_2018_default_privatebond.xlsx")
+    result.to_excel("predict_2018_default_bond.xlsx")
 
     print(result[result['df']==1])
     result_df = result[result['df']==1]
 
-    out = result_df.merge(record, on = 'name')
+#    out = result_df.merge(record, on = 'name')
     return result
     
     
@@ -259,6 +287,8 @@ if __name__ == "__main__":
     
     l = len(result)
     print(result[int(l*0.7):l])
+    
+    result[int(l*0.7):].to_excel('predicted_2018_default_last_30percent.xlsx')
     
     
     
