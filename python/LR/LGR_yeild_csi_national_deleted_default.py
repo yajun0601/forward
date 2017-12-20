@@ -14,7 +14,8 @@ from sklearn.preprocessing.data import QuantileTransformer
 from sklearn.preprocessing import StandardScaler
 from pymongo import MongoClient
 import json
-client = MongoClient("mongodb://1t611714m7.iask.in:22839/")
+#client = MongoClient("mongodb://1t611714m7.iask.in:22839/")
+client = MongoClient("mongodb://192.168.10.60:27017/")
 db = client.bonds
 # ============== YTM sklearn LR modle
 
@@ -30,7 +31,15 @@ def get_basic_sample():
     clear_record_ndf = record_ndf.drop(record_ndf[record_ndf['name'].isin(record_df['name'])].index)
     
     sample = record_df.append(clear_record_ndf)
-    return sample
+    
+    sample_top = list()
+    for x in sample['defendant'].values:
+        if x > 20:
+            sample_top.append(20)
+        else:
+            sample_top.append(x)
+    sample['defendant'] = sample_top
+    return sample[['defendant','shixin', 'zhixing','std', 'national','df']].fillna(0)
 
 def get_sample():
 #    client = MongoClient("mongodb://127.0.0.1:27017/")
@@ -114,16 +123,16 @@ def get_sample_standard():
 def get_sample_Quantile():
 #    client = MongoClient("mongodb://127.0.0.1:27017/")
     #client = MongoClient("mongodb://1t611714m7.iask.in:12471/")
-    db = client.bonds
-    
-    query = db.yeild_csi_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
-    record = pd.DataFrame(list(query))
-#    client.close()
-    
-    record = record[['defendant','shixin', 'zhixing','std','national', 'df']]
-    record.fillna(0,inplace=True)
-    sample = record.copy()
-    
+#    db = client.bonds
+#    
+#    query = db.yeild_csi_std_samples.find({"$or":[{'df':1},{'df':0}]},{'_id':0})
+#    record = pd.DataFrame(list(query))
+##    client.close()
+#    
+#    record = record[['defendant','shixin', 'zhixing','std','national', 'df']]
+#    record.fillna(0,inplace=True)
+#    sample = record.copy()
+    sample = get_basic_sample()
     sample_df=sample[sample['df']==1]
     sample = sample.append(sample_df)
     sample = sample.append(sample_df)
@@ -273,9 +282,11 @@ def predict_result(modle):
     query = db.yeild_csi_std_samples.find({"$nor":[{'df':1},{'df':0}]},{'_id':0})
     record = pd.DataFrame(list(query))
     
-    query = db.maturitydate2018_private_enterprise_bonds.find({},{'_id':0,'ISSUER':1})
-    private_bond = pd.DataFrame(list(query))
-    private_bond.columns=['name']
+    query = db.maturity_yield_csi_all.find({},{'_id':0,'issuer':1,'code':1})
+    all_bond = pd.DataFrame(list(query))
+    all_bond.columns=['code','name']
+    
+#    private_bond.columns=['name']
     
     sample = record #.merge(private_bond,on='name',how='inner')
     client.close()
@@ -294,23 +305,31 @@ def predict_result(modle):
     result.columns = ['name','values','df']    
     
     result.sort_values(by='values',inplace=True)
-    result.to_excel("predict_2018_default_bond.xlsx")
+#    result.to_excel("predict_2018_default_bond.xlsx")
 
     print(result[result['df']==1])
-    result_df = result[result['df']==1]
+#    result_df = result[result['df']==1]
+    
+    result = result.merge(all_bond,on='name',how='left')
 
 #    out = result_df.merge(record, on = 'name')
     return result
     
     
     
-#
-#if __name__ == "__main__":    
 
-#    result = predict_result(linreg)   
-#    l = len(result)
-#    print(result[int(l*0.7):l])
-#    result[int(l*0.7):].to_excel('predicted_2018_default_last_30percent.xlsx')
+if __name__ == "__main__":    
+
+    result = predict_result(linreg)   
+    query = db.yeild_csi_std_samples.find({'df':1},{'_id':0})
+    default = pd.DataFrame(list(query))
+    default_comp_name_lst = default['name'].tolist()# 将df_1表的公司名字转化为list作为dataframe的筛选条件
+    df_no_defult = result[~result['name'].isin(default_comp_name_lst)]# 剔除企业名字含有债券违约名单
+    
+    
+    l = len(result)
+#    print(result[int(l*0.9):l])
+    df_no_defult[int(l*0.9):].to_excel('predicted_all_default_last_10percent.xlsx')
     
     
     
