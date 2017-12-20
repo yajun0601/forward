@@ -29,7 +29,8 @@ def get_bond_clean_df(bondType='default'):
         collection = db.matured_private_bond_ytmb_2018
     elif bondType == '2018_all':
         collection = db.maturity_yield_csi_2018
-    
+    elif bondType == 'yield_csi_all':
+        collection = db.maturity_yield_csi_all    
     
     query           =  collection.find({},{"_id":0})
     bonds_ytm = pd.DataFrame(list(query))
@@ -181,6 +182,8 @@ def insert_database(dataframe, bondType = 'default'):
 #        df_samples = df_samples.fillna(0)
     elif  bondType == '2018_all':
         df_samples = df_samples.fillna(0)
+    elif bondType == 'yield_csi_all':
+        df_samples = df_samples.fillna(0)
     
     insert_record = json.loads(df_samples.to_json(orient='records'))
     db.yeild_csi_std_samples.insert_many(insert_record)
@@ -193,9 +196,14 @@ def insert_default_and_matured():
     df = get_bond_clean_df(bondType)
     insert_database(df,bondType)      
     
-    bondType = '2018_all'
+    bondType = 'yield_csi_all'
     df = get_bond_clean_df(bondType)
-    insert_database(df,bondType)     
+    insert_database(df,bondType)   
+    
+    
+#    bondType = '2018_all'
+#    df = get_bond_clean_df(bondType)
+#    insert_database(df,bondType)     
 #    bondType = '2018private'
 #    df = get_bond_clean_df(bondType)
 #    insert_database(df,bondType)      
