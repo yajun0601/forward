@@ -22,6 +22,20 @@ START_DATE = '2015-01-01'
 #END_DATE = '2016-12-31'
 END_DATE = time.strftime('%Y-%m-%d',time.localtime(time.time()))
 
+def export_CaseName():
+    query = db.JudgmentDoc_isExactlySame_Clean.aggregate([
+#//        { "$match":{"Name":name}},
+        { "$match":{"SubmitDate":{"$gte":'2017-01-01'}}},
+        { "$match":{"SubmitDate":{"$lt":'2017-12-31'}}},
+        { "$project": {"Defendantlist":1,"CaseName":1}},
+        { "$unwind": "$Defendantlist"},
+        { "$match":{"Defendantlist":{"$regex":"公司"}}}
+#        //{ "$match":{"Defendantlist":{"$regex":"^((?!公司).)*$"}}},
+#        //{ "$group":{"_id":"$Defendantlist", "cnt":{"$sum":1}}}^((?!hede).)*$
+        ])
+    df = pd.DataFrame(list(query))
+    df = df.drop("_id",axis=1)
+    df.to_excel('CaseName.xlsx')
 def import_default_record():
     DATA_FILE='../../data/违约债券报表20171120.xlsx'
     collection = db.default_20171120

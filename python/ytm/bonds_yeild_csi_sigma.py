@@ -23,16 +23,21 @@ def get_bond_clean_df(bondType='default'):
     
     if bondType == 'default':
         collection = db.default_ytm
+        query           =  collection.find({},{"_id":0})
     elif bondType == 'matured':
         collection = db.matured_bond_ytm
+        query           =  collection.find({},{"_id":0})
     elif bondType == '2018private':
         collection = db.matured_private_bond_ytmb_2018
+        query           =  collection.find({},{"_id":0})
     elif bondType == '2018_all':
         collection = db.maturity_yield_csi_2018
+        query           =  collection.find({},{"_id":0})
     elif bondType == 'yield_csi_all':
-        collection = db.maturity_yield_csi_all    
+        collection = db.maturity_yield_csi_all
+        query           =  collection.find({},{"_id":0})
     
-    query           =  collection.find({},{"_id":0})
+
     bonds_ytm = pd.DataFrame(list(query))
 #    bonds_ytm = bonds_ytm.fillna(axis='columns',method='backfill')
     #查看公司重复项的清单。
@@ -97,7 +102,21 @@ def get_bond_clean_df(bondType='default'):
     imr = imr.fit(bonds_clean_df[bonds_col])
     bonds_clean_df[bonds_col] = imr.transform(bonds_clean_df[bonds_col])
     
-    return bonds_clean_df
+    
+    pd.set_option('precision', 4)
+    ytm_max_std = bonds_clean_df.rolling(window=5, center=False).std().max(axis=0)
+    ytm_max_std_top = list()
+    for x in ytm_max_std.values:
+        if x > 10:
+            ytm_max_std_top.append(10)
+        else:
+            ytm_max_std_top.append(x)
+            
+    ytm_max_std_df = pd.DataFrame(data=[ytm_max_std.index,ytm_max_std_top]).T
+    ytm_max_std_df.rename(columns={0:'name',1:'std'}, inplace=True)
+    
+    
+    return ytm_max_std_df
 #    return
 
 
@@ -142,24 +161,12 @@ def max_std(name):
     return max_std
     
 def insert_database(dataframe, bondType = 'default'):
-    pd.set_option('precision', 4)
-    ytm_max_std = dataframe.rolling(window=5, center=False).std().max(axis=0)
-    ytm_max_std_top = list()
-    for x in ytm_max_std.values:
-        if x > 10:
-            ytm_max_std_top.append(10)
-        else:
-            ytm_max_std_top.append(x)
-            
-    ytm_max_std_df = pd.DataFrame(data=[ytm_max_std.index,ytm_max_std_top]).T
-    ytm_max_std_df.rename(columns={0:'name',1:'std'}, inplace=True)
     
-    db_ytm              = client.qichacha_new
-    collection = db_ytm.shixin_zhixing_defend
-    query           =  collection.find({},{'_id':0,'name':1,'defendant':1,'shixin':1,'zhixing':1})
+    db_qichacha              = client.qichacha_new
+    collection = db_qichacha.samples20171221
+    query           =  collection.find({},{'_id':0,'date':0,'df':0}) #'name':1,'defendant':1,'appellor','bank','small_loan_cmpny','in_arrears','shixin':1,'zhixing':1
     shixin_zhixing = pd.DataFrame(list(query))
-    
-    df_samples = ytm_max_std_df.merge(shixin_zhixing,on='name',how='left')
+    df_samples = dataframe.merge(shixin_zhixing,on='name',how='left')
 
 #   state-owned company
     db_comp = client.company_data
@@ -186,7 +193,7 @@ def insert_database(dataframe, bondType = 'default'):
         df_samples = df_samples.fillna(0)
     
     insert_record = json.loads(df_samples.to_json(orient='records'))
-    db.yeild_csi_std_samples.insert_many(insert_record)
+    db.yeild_csi_std_leagal_samples20171222.insert_many(insert_record)
 
 def insert_default_and_matured():    
     bondType = 'default'
@@ -208,7 +215,7 @@ def insert_default_and_matured():
 #    df = get_bond_clean_df(bondType)
 #    insert_database(df,bondType)      
  
-def insert_2018_private_bond():
+def insert_2018_private_bond(bonds_clean_df):
     pd.set_option('precision', 2)
     ytm_max_std = bonds_clean_df.rolling(window=10, center=False).std().max(axis=0)
     ytm_max_std_df = pd.DataFrame(data=[ytm_max_std.index,ytm_max_std.values]).T
@@ -226,7 +233,7 @@ def insert_2018_private_bond():
     insert_record = json.loads(df_samples.to_json(orient='records'))
     db.ytm_std_samples_2018.insert_many(insert_record)       
 
-def draw_default_bond():
+def draw_default_bond(bonds_clean_df):
     for comp in (bonds_clean_df.columns):
         Price_and_Volatility_visualization(comp,5)
     return
