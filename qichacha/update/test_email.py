@@ -11,12 +11,12 @@ import os
 import pandas as pd
 my.my_print('a test')
 
-mailto_list=["zhengyajun@zhengqf.com"]#,"zqf_btc@126.com"
+mailto_list=["zhengyajun@88mmmoney.com"]#,"zqf_btc@126.com"
 output_dir = os.getcwd()
-attach = 'new_shixin.xlsx'
+attach = 'finance2017.xlsx'
 df = pd.read_excel("%s/%s"%(output_dir,attach))
-namelist = list(set(df['Name']))
+namelist = list(set(df['COMP_NAME']))
 content = '\n'.join(namelist)
-subject = "新增失信信息报告"
+subject = "新增报告"
 if my.send_mail(mailto_list,subject, output_dir, attach, content):
-    print('Succeed send email')
+    print('Succeed send email:'+content)
